@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { trpc } from "@/lib/trpc";
+import { api } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileUp, Plus, Package, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { toast } from "sonner";
 export default function EntradaMercadoria() {
   const [activeTab, setActiveTab] = useState("nfe");
   const [showItens, setShowItens] = useState<number | null>(null);
+  const queryClient = useQueryClient();
   
   // Estados para Entrada Manual
   const [openManual, setOpenManual] = useState(false);
@@ -40,11 +42,47 @@ export default function EntradaMercadoria() {
   const [novaQuantidade, setNovaQuantidade] = useState(0);
   const [novoPreco, setNovoPreco] = useState(0);
 
-  const { data: kardex } = trpc.kardex.listByProduto.useQuery({ produtoId: 0 });
-  const { data: fornecedores } = trpc.fornecedores.list.useQuery();
-  const { data: produtos } = trpc.produtos.list.useQuery();
-  const createMovimentacao = trpc.kardex.create.useMutation();
-  const updatePrecos = trpc.produtos.updatePrecos.useMutation();
+  const { data: kardex } = useQuery({
+    queryKey: ["kardex"],
+    queryFn: async () => {
+      const { data } = await api.get("/kardex");
+      return data;
+    },
+  });
+
+  const { data: fornecedores } = useQuery({
+    queryKey: ["fornecedores"],
+    queryFn: async () => {
+      const { data } = await api.get("/fornecedores");
+      return data;
+    },
+  });
+
+  const { data: produtos } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
+      const { data } = await api.get("/produtos");
+      return data;
+    },
+  });
+
+  const createMovimentacao = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.post("/kardex", data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kardex"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos"] });
+    },
+  });
+
+  const updatePrecos = useMutation({
+    mutationFn: async ({ produtoId, precoCusto }: { produtoId: number; precoCusto: number }) => {
+      const res = await api.put(`/produtos/${produtoId}/precos`, { precoCusto });
+      return res.data;
+    },
+  });
 
   // Agrupar movimentações por fornecedor (simulando notas fiscais)
   const notasPorFornecedor = kardex

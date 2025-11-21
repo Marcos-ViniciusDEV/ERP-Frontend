@@ -48,6 +48,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenuSub,
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -56,6 +60,7 @@ import {
   PanelLeft,
   Package,
   X,
+  ChevronRight,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -70,6 +75,8 @@ import {
   ShortcutDialogProvider,
   useShortcutDialog,
 } from "@/contexts/ShortcutDialogContext";
+import { useMenuItems, SubMenuItem } from "@/hooks/useMenuItems";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 /** Chaves e constantes de configuração do sidebar */
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -400,48 +407,126 @@ function SidebarMainContent({
 }) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const isMobile = useIsMobile();
+  const menuItems = useMenuItems();
+
+  const renderMobileMenuItems = (items: SubMenuItem[]) => {
+    return items.map((item, index) => {
+      if (item.items && item.items.length > 0) {
+        return (
+          <Collapsible key={index} asChild defaultOpen={false} className="group/collapsible">
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton tooltip={item.label}>
+                  <span>{item.label}</span>
+                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {renderMobileMenuItems(item.items)}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
+        );
+      }
+
+      return (
+        <SidebarMenuItem key={index}>
+          <SidebarMenuButton
+            onClick={() => {
+              if (item.action) item.action();
+              else if (item.path) setLocation(item.path);
+            }}
+            isActive={location === item.path}
+          >
+            <span>{item.label}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      );
+    });
+  };
 
   return (
     <SidebarContent className="gap-0">
       <div className="overflow-y-auto flex-1">
-        <SidebarMenu className="px-2 py-1">
-          {shortcuts.map(item => {
-            const isActive = location === item.path;
-            // Garantir que sempre temos um componente válido
-            const IconComponent =
-              typeof item.icon === "function" ? item.icon : Package;
-            return (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  isActive={isActive}
-                  onClick={() => setLocation(item.path)}
-                  onContextMenu={e =>
-                    handleContextMenu(e, item.id, item.isCustom)
-                  }
-                  tooltip={item.label}
-                  className={`h-10 transition-all font-normal relative group ${item.isCustom ? "cursor-context-menu" : ""}`}
-                >
-                  <IconComponent
-                    className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                  />
-                  <span className="flex-1">{item.label}</span>
-                  {item.shortcut && (
-                    <span className="text-xs text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden">
-                      {item.shortcut}
-                    </span>
-                  )}
-                  {item.isCustom && (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden" />
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+        {/* Atalhos (Favoritos) */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Favoritos</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {shortcuts.map(item => {
+                const isActive = location === item.path;
+                const IconComponent =
+                  typeof item.icon === "function" ? item.icon : Package;
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(item.path)}
+                      onContextMenu={e =>
+                        handleContextMenu(e, item.id, item.isCustom)
+                      }
+                      tooltip={item.label}
+                      className={`h-10 transition-all font-normal relative group ${item.isCustom ? "cursor-context-menu" : ""}`}
+                    >
+                      <IconComponent
+                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                      />
+                      <span className="flex-1">{item.label}</span>
+                      {item.shortcut && (
+                        <span className="text-xs text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden">
+                          {item.shortcut}
+                        </span>
+                      )}
+                      {item.isCustom && (
+                        <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden" />
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Menu Principal (Apenas Mobile) */}
+        {isMobile && (
+          <>
+            <div className="px-2 py-2">
+              <div className="h-[1px] bg-border" />
+            </div>
+            <SidebarGroup>
+              <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {menuItems.map((section, index) => (
+                    <Collapsible key={index} asChild defaultOpen={false} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={section.label}>
+                            <span className="font-medium">{section.label}</span>
+                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {section.items && renderMobileMenuItems(section.items)}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </div>
 
       {/* Dica de uso */}
-      {!isCollapsed && (
+      {!isCollapsed && !isMobile && (
         <div className="px-4 py-3 text-xs text-muted-foreground text-center border-t mt-2">
           Clique com botão direito em atalhos personalizados para removê-los
         </div>

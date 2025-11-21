@@ -18,18 +18,80 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { trpc } from "@/lib/trpc";
+import { api } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+type Fornecedor = {
+  id: number;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  cnpj: string;
+  inscricaoEstadual: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+};
+
 export default function Fornecedores() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { data: fornecedores, isLoading, refetch } = trpc.fornecedores.list.useQuery();
-  const createFornecedor = trpc.fornecedores.create.useMutation();
-  const updateFornecedor = trpc.fornecedores.update.useMutation();
-  const deleteFornecedor = trpc.fornecedores.delete.useMutation();
+  const queryClient = useQueryClient();
+
+  const { data: fornecedores, isLoading } = useQuery({
+    queryKey: ["fornecedores"],
+    queryFn: async () => {
+      const { data } = await api.get<Fornecedor[]>("/fornecedores");
+      return data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (newFornecedor: any) => {
+      const { data } = await api.post("/fornecedores", newFornecedor);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Fornecedor cadastrado com sucesso!");
+      setOpen(false);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Erro ao cadastrar fornecedor");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const { data: result } = await api.put(`/fornecedores/${id}`, data);
+      return result;
+    },
+    onSuccess: () => {
+      toast.success("Fornecedor atualizado com sucesso!");
+      setOpen(false);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Erro ao atualizar fornecedor");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/fornecedores/${id}`);
+    },
+    onSuccess: () => {
+      toast.success("Fornecedor excluído com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Erro ao excluir fornecedor");
+    },
+  });
 
   const [formData, setFormData] = useState({
     razaoSocial: "",
@@ -41,34 +103,29 @@ export default function Fornecedores() {
     endereco: "",
   });
 
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      razaoSocial: "",
+      nomeFantasia: "",
+      cnpj: "",
+      inscricaoEstadual: "",
+      telefone: "",
+      email: "",
+      endereco: "",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (editingId) {
-        await updateFornecedor.mutateAsync({ id: editingId, ...formData });
-        toast.success("Fornecedor atualizado com sucesso!");
-      } else {
-        await createFornecedor.mutateAsync(formData);
-        toast.success("Fornecedor cadastrado com sucesso!");
-      }
-      setOpen(false);
-      setEditingId(null);
-      refetch();
-      setFormData({
-        razaoSocial: "",
-        nomeFantasia: "",
-        cnpj: "",
-        inscricaoEstadual: "",
-        telefone: "",
-        email: "",
-        endereco: "",
-      });
-    } catch (error) {
-      toast.error(editingId ? "Erro ao atualizar fornecedor" : "Erro ao cadastrar fornecedor");
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...formData });
+    } else {
+      createMutation.mutate(formData);
     }
   };
 
-  const handleEdit = (fornecedor: { id: number; razaoSocial: string; nomeFantasia: string | null; cnpj: string; inscricaoEstadual: string | null; telefone: string | null; email: string | null; endereco: string | null }) => {
+  const handleEdit = (fornecedor: Fornecedor) => {
     setEditingId(fornecedor.id);
     setFormData({
       razaoSocial: fornecedor.razaoSocial || "",
@@ -82,14 +139,9 @@ export default function Fornecedores() {
     setOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir este fornecedor?")) return;
-    try {
-      await deleteFornecedor.mutateAsync({ id });
-      toast.success("Fornecedor excluído com sucesso!");
-      refetch();
-    } catch (error) {
-      toast.error("Erro ao excluir fornecedor");
+  const handleDelete = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este fornecedor?")) {
+      deleteMutation.mutate(id);
     }
   };
 
@@ -101,7 +153,10 @@ export default function Fornecedores() {
             <h1 className="text-3xl font-bold text-foreground">Fornecedores</h1>
             <p className="text-muted-foreground mt-1">Gerencie o cadastro de fornecedores</p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -182,8 +237,8 @@ export default function Fornecedores() {
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={createFornecedor.isPending}>
-                    {createFornecedor.isPending ? "Salvando..." : "Salvar"}
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </form>
@@ -211,7 +266,7 @@ export default function Fornecedores() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fornecedores.map((fornecedor: { id: number; razaoSocial: string; nomeFantasia: string | null; cnpj: string; inscricaoEstadual: string | null; telefone: string | null; email: string | null; endereco: string | null }) => (
+                  {fornecedores.map((fornecedor) => (
                     <TableRow key={fornecedor.id}>
                       <TableCell className="font-medium">{fornecedor.razaoSocial}</TableCell>
                       <TableCell>{fornecedor.nomeFantasia || "-"}</TableCell>

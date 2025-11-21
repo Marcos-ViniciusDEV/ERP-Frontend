@@ -8,7 +8,7 @@
  * - **Gráfico de estoque**: Top 5 produtos com maior estoque (gráfico de linhas)
  * - **Fluxo de caixa**: Contas a pagar vs contas a receber (gráfico de barras)
  *
- * Utiliza tRPC para buscar dados em tempo real e Recharts para visualizações.
+ * Utiliza React Query para buscar dados em tempo real e Recharts para visualizações.
  */
 
 import DashboardLayout from "@/components/DashboardLayout";

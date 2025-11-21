@@ -18,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { trpc } from "@/lib/trpc";
+import { api } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck, Plus, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,12 +27,46 @@ import { toast } from "sonner";
 export default function Inventario() {
   const [open, setOpen] = useState(false);
   const [contagemOpen, setContagemOpen] = useState(false);
-  // Temporariamente sem listagem de inventários
-  const inventarios: any[] = [];
-  const refetch = () => {};
-  const { data: produtos } = trpc.produtos.list.useQuery();
-  const createInventario = trpc.inventario.create.useMutation();
-  const addItem = trpc.inventario.addItem.useMutation();
+  const queryClient = useQueryClient();
+
+  const { data: inventarios, refetch } = useQuery({
+    queryKey: ["inventarios"],
+    queryFn: async () => {
+      const { data } = await api.get("/inventario");
+      return data;
+    },
+  });
+
+  const { data: produtos } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
+      const { data } = await api.get("/produtos");
+      return data;
+    },
+  });
+
+  const createInventario = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.post("/inventario", data);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Inventário iniciado com sucesso!");
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["inventarios"] });
+      setFormData({ descricao: "" });
+    },
+    onError: () => {
+      toast.error("Erro ao iniciar inventário");
+    },
+  });
+
+  const addItem = useMutation({
+    mutationFn: async ({ inventarioId, ...data }: any) => {
+      const res = await api.post(`/inventario/${inventarioId}/itens`, data);
+      return res.data;
+    },
+  });
 
   const [formData, setFormData] = useState({
     descricao: "",
@@ -42,17 +77,9 @@ export default function Inventario() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await createInventario.mutateAsync({
-        descricao: formData.descricao,
-      });
-      toast.success("Inventário iniciado com sucesso!");
-      setOpen(false);
-      refetch();
-      setFormData({ descricao: "" });
-    } catch (error) {
-      toast.error("Erro ao iniciar inventário");
-    }
+    createInventario.mutate({
+      descricao: formData.descricao,
+    });
   };
 
   const handleIniciarContagem = (inventario: any) => {
@@ -90,7 +117,7 @@ export default function Inventario() {
       toast.success("Inventário finalizado com sucesso!");
       setContagemOpen(false);
       setInventarioSelecionado(null);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["inventarios"] });
     } catch (error) {
       toast.error("Erro ao finalizar inventário");
     }

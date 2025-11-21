@@ -8,11 +8,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { trpc } from "@/lib/trpc";
+import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 export default function MovimentacaoCaixa() {
-  const { data: movimentacoes, isLoading } = trpc.caixa.list.useQuery();
+  const { data: movimentacoes, isLoading } = useQuery({
+    queryKey: ["movimentacao-caixa"],
+    queryFn: async () => {
+      // Endpoint for caixa movements
+      const { data } = await api.get("/caixa");
+      return data;
+    },
+  });
 
   const totalEntradas = movimentacoes
     ?.filter((m: any) => m.tipo === "ENTRADA")

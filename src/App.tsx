@@ -34,20 +34,20 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-// import Produtos from "./pages/estoque/Produtos";
+import Produtos from "./pages/estoque/Produtos";
 import Clientes from "./pages/cadastros/Clientes";
-// import Fornecedores from "./pages/compras/Fornecedores";
-// import ContasPagar from "./pages/financeiro/ContasPagar";
-// import EntradaMercadoria from "@/pages/estoque/EntradaMercadoria";
-// import BaixasManuais from "./pages/estoque/BaixasManuais";
-// import Inventario from "./pages/estoque/Inventario";
-// import ContasReceber from "./pages/financeiro/ContasReceber";
-// import PedidosCompra from "./pages/compras/PedidosCompra";
-// import ConsultarVendas from "./pages/vendas/ConsultarVendas";
-// import MovimentacaoCaixa from "./pages/vendas/MovimentacaoCaixa";
-// import Etiquetas from "./pages/Etiquetas";
-// import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
-// import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
+import Fornecedores from "./pages/compras/Fornecedores";
+import ContasPagar from "./pages/financeiro/ContasPagar";
+import EntradaMercadoria from "@/pages/estoque/EntradaMercadoria";
+import BaixasManuais from "./pages/estoque/BaixasManuais";
+import Inventario from "./pages/estoque/Inventario";
+import ContasReceber from "./pages/financeiro/ContasReceber";
+import PedidosCompra from "./pages/compras/PedidosCompra";
+import ConsultarVendas from "./pages/vendas/ConsultarVendas";
+import MovimentacaoCaixa from "./pages/vendas/MovimentacaoCaixa";
+import Etiquetas from "./pages/Etiquetas";
+import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
+import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { useEffect } from "react";
@@ -76,9 +76,9 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
       <Route path={"/"} component={Home} />
-      {/* <Route path={"/estoque/produtos"} component={Produtos} /> */}
+      <Route path={"/estoque/produtos"} component={Produtos} />
       <Route path={"/cadastros/clientes"} component={Clientes} />
-      {/* <Route path={"/compras/fornecedores"} component={Fornecedores} />
+      <Route path={"/compras/fornecedores"} component={Fornecedores} />
       <Route path={"/financeiro/pagar"} component={ContasPagar} />
       <Route path="/estoque/entrada" component={EntradaMercadoria} />
       <Route path={"/estoque/baixas"} component={BaixasManuais} />
@@ -92,7 +92,7 @@ function Router() {
       <Route
         path="/relatorios/movimento-vendedores"
         component={MovimentoVendedores}
-      /> */}
+      />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

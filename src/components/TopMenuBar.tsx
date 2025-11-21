@@ -19,7 +19,7 @@
  * @component
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, LogOut, Plus, Package } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useRightPanel } from "@/contexts/RightPanelContext";
 import { useLeftSidebar } from "@/contexts/SidebarContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { useShortcutDialog } from "@/contexts/ShortcutDialogContext";
@@ -47,23 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useEffect } from "react";
-
-/** Estrutura de menu principal */
-interface MenuItem {
-  label: string;
-  items?: SubMenuItem[];
-  action?: () => void;
-}
-
-/** Item de submenu com suporte a rotas e ações */
-interface SubMenuItem {
-  label: string;
-  path?: string;
-  action?: () => void;
-  items?: SubMenuItem[];
-  separator?: boolean;
-}
+import { useMenuItems, SubMenuItem } from "@/hooks/useMenuItems";
 
 /** Posição e dados do menu de contexto */
 interface ContextMenu {
@@ -75,7 +58,6 @@ interface ContextMenu {
 export function TopMenuBar() {
   const [, setLocation] = useLocation();
   const { logout } = useAuth();
-  const { openPanel } = useRightPanel();
   useLeftSidebar();
   const { addShortcut, shortcuts } = useShortcuts();
   const { setIsDialogOpen } = useShortcutDialog();
@@ -84,6 +66,8 @@ export function TopMenuBar() {
   const [showShortcutDialog, setShowShortcutDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SubMenuItem | null>(null);
   const [capturedKey, setCapturedKey] = useState<string>("");
+  
+  const menuItems = useMenuItems();
 
   // Sincronizar estado do dialog com o contexto
   useEffect(() => {
@@ -145,147 +129,6 @@ export function TopMenuBar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [contextMenu]);
-
-  const menuItems: MenuItem[] = [
-    {
-      label: "Cadastros",
-      items: [
-        { label: "Clientes", path: "/cadastros/clientes" },
-        { label: "Produtos", path: "/estoque/produtos" },
-        { label: "Fornecedores", path: "/compras/fornecedores" },
-        { label: "Estoques", path: "/estoque/consulta" },
-      ],
-    },
-    {
-      label: "Movimentos",
-      items: [
-        { label: "Vendas", path: "/vendas/consultar" },
-        { label: "Entrada de Mercadoria", path: "/estoque/entrada" },
-        { label: "Baixas Manuais", path: "/estoque/baixas" },
-        { label: "Movimentação de Caixa", path: "/financeiro/caixa" },
-        { label: "Pedidos de Compra", path: "/compras/pedidos" },
-      ],
-    },
-    {
-      label: "Módulos",
-      items: [
-        { label: "Inventário", path: "/estoque/inventario" },
-        { label: "Contas a Receber", path: "/financeiro/receber" },
-        { label: "Contas a Pagar", path: "/financeiro/pagar" },
-        { label: "Pedidos de Compra", path: "/compras/pedidos" },
-      ],
-    },
-    {
-      label: "Automação",
-      items: [
-        {
-          label: "Importar NFe",
-          action: () => openPanel(),
-        },
-        { label: "Backup Automático", path: "/automacao/backup" },
-        {
-          label: "Backup e Restauração",
-          path: "/automacao/backup-restauracao",
-        },
-      ],
-    },
-    {
-      label: "Relatórios",
-      items: [
-        {
-          label: "Relatórios de Documentos",
-          items: [
-            {
-              label: "Resumo Por Documento",
-              path: "/relatorios/resumo-documento",
-            },
-            {
-              label: "Resumo Por Documento / Cancelamentos",
-              path: "/relatorios/resumo-documento-cancelamentos",
-            },
-          ],
-        },
-        { label: "Relação De Produtos", path: "/relatorios/relacao-produtos" },
-        {
-          label: "Resumos De Movimento",
-          items: [
-            {
-              label: "Resumo de Movimento",
-              path: "/relatorios/resumo-movimento",
-            },
-            {
-              label: "Resumos De Movimento/Unidades",
-              path: "/relatorios/movimento-unidades",
-            },
-            {
-              label: "Resumos De Tipo Movimento",
-              path: "/relatorios/tipo-movimento",
-            },
-          ],
-        },
-        { label: "Resumos Marcas Vendas", path: "/relatorios/marcas-vendas" },
-        { label: "Posição Dos Estoques", path: "/relatorios/posicao-estoques" },
-        {
-          label: "Movimento Hierárquico",
-          path: "/relatorios/movimento-hierarquico",
-        },
-        { label: "Mesa De Movimento", path: "/relatorios/mesa-movimento" },
-        {
-          label: "Resumo De Lançamento",
-          path: "/relatorios/resumo-lancamento",
-        },
-        {
-          label: "Resumo Diário Vendas",
-          path: "/relatorios/resumo-diario-vendas",
-        },
-        {
-          label: "Resumo Por Produto",
-          items: [
-            { label: "Resumo Por Produto", path: "/relatorios/resumo-produto" },
-            {
-              label: "Resumo Faturamentos",
-              path: "/relatorios/resumo-faturamentos",
-            },
-          ],
-        },
-        {
-          label: "Movimento Vendedores",
-          path: "/relatorios/movimento-vendedores",
-        },
-        {
-          label: "Relação Dos Notas de Contribuintes",
-          path: "/relatorios/notas-contribuintes",
-        },
-        {
-          label: "Posição dos Etiquetas Diário",
-          path: "/relatorios/etiquetas-diario",
-        },
-      ],
-    },
-    {
-      label: "Configurações",
-      items: [
-        { label: "Parâmetros do Sistema", path: "/configuracoes/parametros" },
-        { label: "Calculadora", path: "/configuracoes/calculadora" },
-        {
-          label: "Relatórios Personalizados",
-          path: "/configuracoes/relatorios",
-        },
-        { label: "Usuários e Permissões", path: "/configuracoes/usuarios" },
-      ],
-    },
-    {
-      label: "Utilitários",
-      items: [
-        { label: "Etiquetas", path: "/utilitarios/etiquetas" },
-        { label: "Importação de Dados", path: "/utilitarios/importacao" },
-      ],
-    },
-    {
-      label: "Específicos",
-      items: [{ label: "Integrações", path: "/especificos/integracoes" }],
-    },
-  ];
 
   const handleMenuClick = (item: SubMenuItem) => {
     if (item.action) {
@@ -398,7 +241,7 @@ export function TopMenuBar() {
 
   return (
     <>
-      <div className="bg-blue-600 text-white shadow-md">
+      <div className="bg-blue-600 text-white shadow-md hidden md:block">
         <div className="flex items-center h-10 px-2 gap-1">
           {/* Menus */}
           {menuItems.map((menu, index) => (
