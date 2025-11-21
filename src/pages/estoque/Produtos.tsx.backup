@@ -1,0 +1,597 @@
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { trpc } from "@/lib/trpc";
+import { Plus, TrendingUp, TrendingDown, Package, DollarSign, Search, Edit, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
+
+export default function Produtos() {
+  const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  const { data: produtos, isLoading, refetch } = trpc.produtos.list.useQuery();
+  const { data: departamentos } = trpc.departamentos.list.useQuery();
+  const createProduto = trpc.produtos.create.useMutation();
+  const updateProduto = trpc.produtos.update.useMutation();
+  const deleteProduto = trpc.produtos.delete.useMutation();
+
+  const [formData, setFormData] = useState({
+    codigo: "",
+    codigoBarras: "",
+    descricao: "",
+    marca: "",
+    departamentoId: 0,
+    unidade: "UN",
+    precoVenda: 0,
+    precoCusto: 0,
+    margemLucro: 30,
+    estoque: 0,
+    estoqueMinimo: 0,
+  });
+
+  // Atalho de teclado: Barra de espaço abre busca
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar se estiver em um input, textarea ou select
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Focar no input quando a busca abrir
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await updateProduto.mutateAsync({ id: editingId, ...formData });
+        toast.success("Produto atualizado com sucesso!");
+      } else {
+        await createProduto.mutateAsync(formData);
+        toast.success("Produto cadastrado com sucesso!");
+      }
+      setOpen(false);
+      setEditingId(null);
+      refetch();
+      setFormData({
+        codigo: "",
+        codigoBarras: "",
+        descricao: "",
+        marca: "",
+        departamentoId: 0,
+        unidade: "UN",
+        precoVenda: 0,
+        precoCusto: 0,
+        margemLucro: 30,
+        estoque: 0,
+        estoqueMinimo: 0,
+      });
+    } catch (error) {
+      toast.error(editingId ? "Erro ao atualizar produto" : "Erro ao cadastrar produto");
+    }
+  };
+
+  const handleEdit = (produto: any) => {
+    setEditingId(produto.id);
+    setFormData({
+      codigo: produto.codigo || "",
+      codigoBarras: produto.codigoBarras || "",
+      descricao: produto.descricao || "",
+      marca: produto.marca || "",
+      departamentoId: produto.departamentoId || 0,
+      unidade: produto.unidade || "UN",
+      precoVenda: produto.precoVenda || 0,
+      precoCusto: produto.precoCusto || 0,
+      margemLucro: produto.margemLucro || 30,
+      estoque: produto.estoque || 0,
+      estoqueMinimo: produto.estoqueMinimo || 0,
+    });
+    setOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+    try {
+      await deleteProduto.mutateAsync({ id });
+      toast.success("Produto excluído com sucesso!");
+      refetch();
+    } catch (error) {
+      toast.error("Erro ao excluir produto");
+    }
+  };
+
+  const handleProdutoClick = (produto: any) => {
+    setSelectedProduto(produto);
+    setDetailsOpen(true);
+  };
+
+  const calcularMargem = (precoVenda: number, precoCusto: number) => {
+    if (precoCusto === 0) return 0;
+    return ((precoVenda - precoCusto) / precoCusto) * 100;
+  };
+
+  // Filtrar produtos pela busca
+  const produtosFiltrados = produtos?.filter((produto: any) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      produto.codigo?.toLowerCase().includes(term) ||
+      produto.codigoBarras?.toLowerCase().includes(term) ||
+      produto.descricao?.toLowerCase().includes(term) ||
+      produto.marca?.toLowerCase().includes(term)
+    );
+  });
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Produtos</h1>
+            <p className="text-muted-foreground mt-1">
+              Pressione <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">ESPAÇO</kbd> para buscar produtos
+            </p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Produto
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingId ? "Editar Produto" : "Cadastrar Novo Produto"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="codigo">Código *</Label>
+                    <Input
+                      id="codigo"
+                      value={formData.codigo}
+                      onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="codigoBarras">Código de Barras</Label>
+                    <Input
+                      id="codigoBarras"
+                      value={formData.codigoBarras}
+                      onChange={(e) => setFormData({ ...formData, codigoBarras: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="descricao">Descrição *</Label>
+                  <Input
+                    id="descricao"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="marca">Marca/Fornecedor</Label>
+                    <Input
+                      id="marca"
+                      value={formData.marca}
+                      onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="unidade">Unidade</Label>
+                    <Input
+                      id="unidade"
+                      value={formData.unidade}
+                      onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="departamentoId">Departamento</Label>
+                    <select
+                      id="departamentoId"
+                      value={formData.departamentoId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, departamentoId: parseInt(e.target.value) })
+                      }
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value={0}>Selecione</option>
+                      {departamentos?.map((dep) => (
+                        <option key={dep.id} value={dep.id}>
+                          {dep.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="estoqueMinimo">Estoque Mínimo</Label>
+                    <Input
+                      id="estoqueMinimo"
+                      type="number"
+                      value={formData.estoqueMinimo || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, estoqueMinimo: parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="precoCusto">Preço de Custo (R$)</Label>
+                    <Input
+                      id="precoCusto"
+                      type="number"
+                      step="0.01"
+                      value={formData.precoCusto ? (formData.precoCusto / 100).toFixed(2) : ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, precoCusto: Math.round((parseFloat(e.target.value) || 0) * 100) })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="margemLucro">Margem de Lucro (%)</Label>
+                    <Input
+                      id="margemLucro"
+                      type="number"
+                      value={formData.margemLucro || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, margemLucro: parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="precoVenda">Preço de Venda (R$)</Label>
+                    <Input
+                      id="precoVenda"
+                      type="number"
+                      step="0.01"
+                      value={formData.precoVenda ? (formData.precoVenda / 100).toFixed(2) : ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, precoVenda: Math.round((parseFloat(e.target.value) || 0) * 100) })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="estoque">Estoque Inicial</Label>
+                    <Input
+                      id="estoque"
+                      type="number"
+                      value={formData.estoque || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, estoque: parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={createProduto.isPending}>
+                    {createProduto.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Campo de Busca */}
+        {searchOpen && (
+          <Card className="border-2 border-primary">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Buscar por código, código de barras, descrição ou marca..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setSearchOpen(false);
+                      setSearchTerm("");
+                    }
+                  }}
+                  className="text-lg"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  Fechar (ESC)
+                </Button>
+              </div>
+              {searchTerm && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {produtosFiltrados?.length || 0} produto(s) encontrado(s)
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Produtos (Clique em um produto para ver detalhes)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-muted-foreground">Carregando...</p>
+            ) : produtosFiltrados && produtosFiltrados.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Código de Barras</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Marca/Fornecedor</TableHead>
+                    <TableHead className="text-right">Estoque</TableHead>
+                    <TableHead className="text-right">Preço PDV</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {produtosFiltrados.map((produto: any) => (
+                    <TableRow
+                      key={produto.id}
+                      className="cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => handleProdutoClick(produto)}
+                    >
+                      <TableCell className="font-medium">{produto.codigo}</TableCell>
+                      <TableCell>{produto.codigoBarras || "-"}</TableCell>
+                      <TableCell>{produto.descricao}</TableCell>
+                      <TableCell>{produto.marca || "-"}</TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={
+                            produto.estoque <= produto.estoqueMinimo
+                              ? "text-red-600 font-bold"
+                              : ""
+                          }
+                        >
+                          {produto.estoque}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        R$ {(produto.precoVenda / 100).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(produto)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(produto.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-muted-foreground">
+                {searchTerm ? "Nenhum produto encontrado com esse termo." : "Nenhum produto cadastrado."}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Painel Lateral de Detalhes */}
+        <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <SheetContent side="right" className="w-[500px] sm:w-[600px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Detalhes do Produto</SheetTitle>
+            </SheetHeader>
+            {selectedProduto && (
+              <div className="space-y-6 mt-6">
+                {/* Informações Básicas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Informações Básicas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Código</Label>
+                      <p className="text-lg font-bold">{selectedProduto.codigo}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Descrição</Label>
+                      <p className="text-base font-medium">{selectedProduto.descricao}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Código de Barras</Label>
+                        <p className="text-sm">{selectedProduto.codigoBarras || "-"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Marca/Fornecedor</Label>
+                        <p className="text-sm">{selectedProduto.marca || "-"}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Unidade</Label>
+                        <p className="text-sm">{selectedProduto.unidade}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Estoque Mínimo</Label>
+                        <p className="text-sm">{selectedProduto.estoqueMinimo}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Estoque */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Estoque
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Estoque Atual</Label>
+                        <p
+                          className={`text-2xl font-bold ${
+                            selectedProduto.estoque <= selectedProduto.estoqueMinimo
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {selectedProduto.estoque}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Estoque Mínimo</Label>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {selectedProduto.estoqueMinimo}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedProduto.estoque <= selectedProduto.estoqueMinimo && (
+                      <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                        <p className="text-sm text-red-800 font-medium">
+                          ⚠️ Estoque abaixo do mínimo! Solicite reposição.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Preços e Margem */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Preços e Margem
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Preço de Custo</Label>
+                        <p className="text-xl font-bold text-blue-600">
+                          R$ {(selectedProduto.precoCusto / 100).toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Preço PDV (Venda)</Label>
+                        <p className="text-xl font-bold text-green-600">
+                          R$ {(selectedProduto.precoVenda / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Margem de Lucro</Label>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {calcularMargem(selectedProduto.precoVenda, selectedProduto.precoCusto).toFixed(
+                          2
+                        )}
+                        %
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Última Venda e Entrada */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Movimentações Recentes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-md">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">Última Entrada</Label>
+                        <p className="text-sm font-medium">Sem registro</p>
+                        <p className="text-xs text-muted-foreground">-</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-md">
+                      <TrendingDown className="h-5 w-5 text-blue-600" />
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">Última Venda</Label>
+                        <p className="text-sm font-medium">Sem registro</p>
+                        <p className="text-xs text-muted-foreground">-</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </DashboardLayout>
+  );
+}
