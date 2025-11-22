@@ -50,6 +50,7 @@ import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
 import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
 import { setAuthToken } from "./_core/hooks/useAuth";
 
@@ -81,6 +82,7 @@ function Router() {
       <Route path={"/compras/fornecedores"} component={Fornecedores} />
       <Route path={"/financeiro/pagar"} component={ContasPagar} />
       <Route path="/estoque/entrada" component={EntradaMercadoria} />
+      <Route path="/estoque/conferencia" component={ConferenciaMercadoria} />
       <Route path={"/estoque/baixas"} component={BaixasManuais} />
       <Route path={"/estoque/inventario"} component={Inventario} />
       <Route path={"/financeiro/receber"} component={ContasReceber} />

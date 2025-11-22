@@ -18,9 +18,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileUp, Plus, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { FileUp, Plus, Package, ChevronDown, ChevronRight, Upload, FileText, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +30,10 @@ export default function EntradaMercadoria() {
   const [showItens, setShowItens] = useState<number | null>(null);
   const queryClient = useQueryClient();
   
+  // Estados para Importação de NFe
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [nfeData, setNfeData] = useState<any>(null);
+
   // Estados para Entrada Manual
   const [openManual, setOpenManual] = useState(false);
   const [fornecedorId, setFornecedorId] = useState(0);
@@ -84,22 +89,147 @@ export default function EntradaMercadoria() {
     },
   });
 
+  const deleteMovimentacao = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await api.post("/kardex/delete-batch", { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kardex"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      toast.success("Entrada cancelada com sucesso!");
+      setTimeout(() => window.location.reload(), 500); // Forçar recarregamento para garantir atualização
+    },
+    onError: (error) => {
+      toast.error("Erro ao cancelar entrada");
+      console.error("Erro ao cancelar:", error);
+    },
+  });
+
+  console.log("Kardex Data:", kardex); // Debug data structure
+
+  // Lógica de Importação de NFe
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.name.endsWith(".xml")) {
+        setSelectedFile(file);
+        parseXML(file);
+      } else {
+        toast.error("Por favor, selecione um arquivo XML válido");
+      }
+    }
+  };
+
+  const parseXML = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(text, "text/xml");
+
+      const nfeNumber = xmlDoc.querySelector("nNF")?.textContent || "N/A";
+      const fornecedor = xmlDoc.querySelector("emit xNome")?.textContent || "N/A";
+      const cnpjFornecedor = xmlDoc.querySelector("emit CNPJ")?.textContent || "";
+      const dataEmissao = xmlDoc.querySelector("dhEmi")?.textContent || "N/A";
+
+      const items = Array.from(xmlDoc.querySelectorAll("det")).map((det) => {
+        const codigo = det.querySelector("cProd")?.textContent || "";
+        const descricao = det.querySelector("xProd")?.textContent || "";
+        const quantidade = parseFloat(det.querySelector("qCom")?.textContent || "0");
+        const valorUnitario = parseFloat(det.querySelector("vUnCom")?.textContent || "0");
+        const valorTotal = parseFloat(det.querySelector("vProd")?.textContent || "0");
+
+        return {
+          codigo,
+          descricao,
+          quantidade,
+          valorUnitario: Math.round(valorUnitario * 100),
+          valorTotal: Math.round(valorTotal * 100),
+        };
+      });
+
+      const valorTotalNota = items.reduce((acc, item) => acc + item.valorTotal, 0);
+
+      setNfeData({
+        numero: nfeNumber,
+        fornecedor,
+        cnpjFornecedor,
+        dataEmissao,
+        valorTotal: valorTotalNota,
+        items,
+      });
+
+      toast.success("XML processado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao processar XML. Verifique o formato do arquivo.");
+      console.error(error);
+    }
+  };
+
+  const handleImportNFe = async () => {
+    if (!nfeData || !nfeData.items || nfeData.items.length === 0) {
+      toast.error("Nenhum item para importar");
+      return;
+    }
+
+    try {
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      for (const item of nfeData.items) {
+        const produto = produtos?.find((p: any) => p.codigo === item.codigo);
+
+        if (produto) {
+          await createMovimentacao.mutateAsync({
+            produtoId: produto.id,
+            tipo: "ENTRADA_NFE",
+            quantidade: item.quantidade,
+            saldoAnterior: produto.estoque,
+            saldoAtual: produto.estoque + item.quantidade, // Backend ignorará isso se for PENDENTE_CONFERENCIA
+            custoUnitario: item.valorUnitario,
+            documentoReferencia: `NFE-${nfeData.numero}`,
+            fornecedor: nfeData.fornecedor,
+            observacao: `Entrada via NFe ${nfeData.numero} - ${nfeData.fornecedor}`,
+          });
+          importedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+
+      toast.success(
+        `NFe importada! ${importedCount} itens processados, ${skippedCount} itens ignorados (produto não cadastrado).`
+      );
+      setNfeData(null);
+      setSelectedFile(null);
+    } catch (error) {
+      toast.error("Erro ao importar NFe");
+      console.error(error);
+    }
+  };
+
   // Agrupar movimentações por fornecedor (simulando notas fiscais)
   const notasPorFornecedor = kardex
-    ?.filter((mov: any) => mov.tipoMovimentacao === "ENTRADA_NFE")
+    ?.filter((mov: any) => mov.tipo === "ENTRADA_NFE")
     .reduce((acc: any, mov: any) => {
       const key = `${mov.fornecedor || "Sem Fornecedor"}-${mov.numeroDocumento || "S/N"}`;
       if (!acc[key]) {
         acc[key] = {
           fornecedor: mov.fornecedor || "Sem Fornecedor",
           numeroDocumento: mov.numeroDocumento || "S/N",
-          data: mov.data,
+          data: mov.createdAt, // Fixed: using createdAt instead of data
           itens: [],
           valorTotal: 0,
+          status: mov.statusConferencia || "CONFERIDO", // Default para conferido se não tiver status
         };
       }
       acc[key].itens.push(mov);
-      acc[key].valorTotal += mov.quantidade * (mov.precoUnitario || 0);
+      acc[key].valorTotal += mov.quantidade * (mov.custoUnitario || 0);
+      // Se algum item estiver pendente, a nota toda é considerada pendente
+      if (mov.statusConferencia === "PENDENTE_CONFERENCIA") {
+        acc[key].status = "PENDENTE_CONFERENCIA";
+      } else if (mov.statusConferencia === "EM_CONFERENCIA" && acc[key].status !== "PENDENTE_CONFERENCIA") {
+        acc[key].status = "EM_CONFERENCIA";
+      }
       return acc;
     }, {});
 
@@ -143,6 +273,8 @@ export default function EntradaMercadoria() {
         const saldoAnterior = produto?.estoque || 0;
         const saldoAtual = saldoAnterior + item.quantidade;
         
+        const fornecedorNome = fornecedores?.find((f: any) => f.id === fornecedorId)?.nomeFantasia || fornecedores?.find((f: any) => f.id === fornecedorId)?.razaoSocial;
+        
         await createMovimentacao.mutateAsync({
           produtoId: item.produtoId,
           tipo: "ENTRADA_NFE",
@@ -151,7 +283,8 @@ export default function EntradaMercadoria() {
           saldoAtual,
           custoUnitario: item.precoUnitario,
           documentoReferencia: numeroDocumento || undefined,
-          observacao: `Entrada manual - Fornecedor: ${fornecedores?.find((f: any) => f.id === fornecedorId)?.nomeFantasia || fornecedores?.find((f: any) => f.id === fornecedorId)?.razaoSocial}`,
+          fornecedor: fornecedorNome,
+          observacao: `Entrada manual - Fornecedor: ${fornecedorNome}`,
         });
         
         // Atualizar preço de custo e recalcular preço de venda baseado na margem
@@ -175,6 +308,21 @@ export default function EntradaMercadoria() {
       (total, item) => total + item.quantidade * item.precoUnitario,
       0
     );
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDENTE_CONFERENCIA":
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200"><Clock className="h-3 w-3 mr-1" /> Pendente Conferência</Badge>;
+      case "EM_CONFERENCIA":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200"><Clock className="h-3 w-3 mr-1" /> Em Conferência</Badge>;
+      case "CONFERIDO":
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="h-3 w-3 mr-1" /> Conferido</Badge>;
+      case "CONFERIDO_COM_DIVERGENCIA":
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><AlertTriangle className="h-3 w-3 mr-1" /> Com Divergência</Badge>;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -206,19 +354,115 @@ export default function EntradaMercadoria() {
                 <CardTitle>Upload de XML de NFe</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                  <FileUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Arraste e solte o arquivo XML da NFe aqui ou clique para selecionar
-                  </p>
-                  <Button variant="outline">
-                    <FileUp className="h-4 w-4 mr-2" />
-                    Selecionar Arquivo XML
-                  </Button>
+                <div>
+                  <Label htmlFor="xml-file">Selecione o arquivo XML</Label>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Input
+                      id="xml-file"
+                      type="file"
+                      accept=".xml"
+                      onChange={handleFileChange}
+                      className="flex-1"
+                    />
+                    {selectedFile && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        <span>{selectedFile.name}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  O sistema processará automaticamente o XML e registrará os produtos no estoque
-                </p>
+
+                {nfeData && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="pt-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                            <p className="text-lg font-bold text-blue-900">{nfeData.fornecedor}</p>
+                            <p className="text-xs text-muted-foreground">{nfeData.cnpjFornecedor}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Número da NFe</Label>
+                            <p className="text-lg font-bold text-blue-900">{nfeData.numero}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(nfeData.dataEmissao).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-xs text-muted-foreground">Valor Total da Nota</Label>
+                            <p className="text-2xl font-bold text-green-600">
+                              R$ {(nfeData.valorTotal / 100).toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {nfeData.items.length} itens na nota
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Itens da NFe ({nfeData.items.length})
+                      </Label>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Código</TableHead>
+                            <TableHead>Descrição</TableHead>
+                            <TableHead className="text-right">Quantidade</TableHead>
+                            <TableHead className="text-right">Valor Unit.</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {nfeData.items.map((item: any, index: number) => {
+                            const produtoExiste = produtos?.find((p: any) => p.codigo === item.codigo);
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{item.codigo}</TableCell>
+                                <TableCell>{item.descricao}</TableCell>
+                                <TableCell className="text-right">{item.quantidade}</TableCell>
+                                <TableCell className="text-right">
+                                  R$ {(item.valorUnitario / 100).toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  R$ {(item.valorTotal / 100).toFixed(2)}
+                                </TableCell>
+                                <TableCell>
+                                  {produtoExiste ? (
+                                    <span className="text-green-600 text-xs">✓ Cadastrado</span>
+                                  ) : (
+                                    <span className="text-red-600 text-xs">✗ Não cadastrado</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setNfeData(null);
+                          setSelectedFile(null);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleImportNFe} disabled={createMovimentacao.isPending}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {createMovimentacao.isPending ? "Importando..." : "Importar NFe"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -242,19 +486,41 @@ export default function EntradaMercadoria() {
                               <ChevronRight className="h-5 w-5 text-muted-foreground" />
                             )}
                             <div>
-                              <p className="font-medium">{nota.fornecedor}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{nota.fornecedor}</p>
+                                {getStatusBadge(nota.status)}
+                              </div>
                               <p className="text-sm text-muted-foreground">
                                 NFe: {nota.numeroDocumento} • {nota.itens.length} itens
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-lg">
-                              R$ {(nota.valorTotal / 100).toFixed(2)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(nota.data).toLocaleDateString("pt-BR")}
-                            </p>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="font-bold text-lg">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(nota.valorTotal / 100)} {/* Dividindo por 100 pois está em centavos */}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(nota.data).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Tem certeza que deseja cancelar esta entrada? O estoque será revertido.")) {
+                                  const ids = nota.itens.map((i: any) => i.id);
+                                  deleteMovimentacao.mutate(ids);
+                                }
+                              }}
+                              disabled={deleteMovimentacao.isPending}
+                            >
+                              Cancelar
+                            </Button>
                           </div>
                         </div>
                         {showItens === index && (
@@ -279,12 +545,12 @@ export default function EntradaMercadoria() {
                                       {item.quantidade}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      R$ {((item.precoUnitario || 0) / 100).toFixed(2)}
+                                      R$ {((item.custoUnitario || 0) / 100).toFixed(2)}
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
                                       R${" "}
                                       {(
-                                        (item.quantidade * (item.precoUnitario || 0)) /
+                                        (item.quantidade * (item.custoUnitario || 0)) /
                                         100
                                       ).toFixed(2)}
                                     </TableCell>

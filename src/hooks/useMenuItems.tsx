@@ -32,6 +32,7 @@ export function useMenuItems() {
       items: [
         { label: "Vendas", path: "/vendas/consultar" },
         { label: "Entrada de Mercadoria", path: "/estoque/entrada" },
+        { label: "Conferência de Mercadoria", path: "/estoque/conferencia" },
         { label: "Baixas Manuais", path: "/estoque/baixas" },
         { label: "Movimentação de Caixa", path: "/financeiro/caixa" },
         { label: "Pedidos de Compra", path: "/compras/pedidos" },
