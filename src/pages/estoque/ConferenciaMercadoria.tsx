@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, CheckCircle, AlertTriangle, Clock, Barcode } from "lucide-react";
+import { Package, CheckCircle, AlertTriangle, Clock, Barcode, RefreshCcw, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -102,6 +102,34 @@ export default function ConferenciaMercadoria() {
     },
   });
 
+  // Resetar conferência de um item
+  const resetConferencia = useMutation({
+    mutationFn: async (conferenciaId: number) => {
+      await api.post(`/conferencias/${conferenciaId}/reset`);
+    },
+    onSuccess: () => {
+      toast.success("Contagem resetada! O item voltou para status PENDENTE.");
+      refetchConferencias();
+    },
+    onError: () => {
+      toast.error("Erro ao resetar conferência");
+    },
+  });
+
+  // Deletar conferência de um item
+  const deleteConferencia = useMutation({
+    mutationFn: async (conferenciaId: number) => {
+      await api.delete(`/conferencias/${conferenciaId}`);
+    },
+    onSuccess: () => {
+      toast.success("Item removido da conferência");
+      refetchConferencias();
+    },
+    onError: () => {
+      toast.error("Erro ao remover item");
+    },
+  });
+
   // Finalizar
   const handleFinalizar = async () => {
     if (!nfeAtiva) return;
@@ -145,6 +173,21 @@ export default function ConferenciaMercadoria() {
       });
 
       if (data) {
+        // Verificar se o produto já foi conferido
+        const produtoJaConferido = conferenciasDaNfe?.find(
+          (conf: any) => conf.produtoId === data.produto.id && 
+          (conf.status === "CONFERIDO" || conf.status === "DIVERGENCIA")
+        );
+
+        if (produtoJaConferido) {
+          toast.error(`Este produto já foi conferido! Use o botão "Refazer Contagem" se precisar recontar.`);
+          setCodigoBarras("");
+          if (barcodeInputRef.current) {
+            barcodeInputRef.current.focus();
+          }
+          return;
+        }
+
         // Produto encontrado, preparar para conferência manual
         setProdutoEmConferencia(data);
         setFormConferencia({
@@ -382,6 +425,7 @@ export default function ConferenciaMercadoria() {
                       <TableHead>Qtd. Esperada</TableHead>
                       <TableHead>Qtd. Conferida</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -395,11 +439,37 @@ export default function ConferenciaMercadoria() {
                             {conf.status}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetConferencia.mutate(conf.id)}
+                              disabled={resetConferencia.isPending || deleteConferencia.isPending}
+                              title="Refazer Contagem"
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm("Tem certeza que deseja remover este item?")) {
+                                  deleteConferencia.mutate(conf.id);
+                                }
+                              }}
+                              disabled={resetConferencia.isPending || deleteConferencia.isPending}
+                              title="Remover Item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(!conferenciasDaNfe || conferenciasDaNfe.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
                           Nenhum item conferido ainda.
                         </TableCell>
                       </TableRow>

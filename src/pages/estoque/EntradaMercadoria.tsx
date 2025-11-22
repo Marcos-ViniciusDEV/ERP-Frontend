@@ -171,9 +171,24 @@ export default function EntradaMercadoria() {
       return;
     }
 
+    // Verificar se o documento já foi importado
+    const documentoJaImportado = kardex?.some(
+      (mov: any) => 
+        mov.tipo === "ENTRADA_NFE" && 
+        mov.documentoReferencia === `NFE-${nfeData.numero}`
+    );
+
+    if (documentoJaImportado) {
+      toast.error(`Este documento (NFe ${nfeData.numero}) já foi importado anteriormente!`);
+      return;
+    }
+
     try {
       let importedCount = 0;
       let skippedCount = 0;
+      
+      // Gerar número de transação único para este lote
+      const numeroTransacao = `TRX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       for (const item of nfeData.items) {
         const produto = produtos?.find((p: any) => p.codigo === item.codigo);
@@ -188,6 +203,7 @@ export default function EntradaMercadoria() {
             custoUnitario: item.valorUnitario,
             documentoReferencia: `NFE-${nfeData.numero}`,
             fornecedor: nfeData.fornecedor,
+            numeroTransacao,
             observacao: `Entrada via NFe ${nfeData.numero} - ${nfeData.fornecedor}`,
           });
           importedCount++;
@@ -207,19 +223,21 @@ export default function EntradaMercadoria() {
     }
   };
 
-  // Agrupar movimentações por fornecedor (simulando notas fiscais)
+  // Agrupar movimentações por número de transação (cada importação separada)
   const notasPorFornecedor = kardex
     ?.filter((mov: any) => mov.tipo === "ENTRADA_NFE")
     .reduce((acc: any, mov: any) => {
-      const key = `${mov.fornecedor || "Sem Fornecedor"}-${mov.numeroDocumento || "S/N"}`;
+      // Usar numeroTransacao como chave, ou fallback para documento+timestamp se não tiver
+      const key = mov.numeroTransacao || `${mov.documentoReferencia || "S/N"}-${mov.id}`;
       if (!acc[key]) {
         acc[key] = {
           fornecedor: mov.fornecedor || "Sem Fornecedor",
-          numeroDocumento: mov.numeroDocumento || "S/N",
-          data: mov.createdAt, // Fixed: using createdAt instead of data
+          numeroDocumento: mov.documentoReferencia || "S/N",
+          data: mov.createdAt,
           itens: [],
           valorTotal: 0,
-          status: mov.statusConferencia || "CONFERIDO", // Default para conferido se não tiver status
+          status: mov.statusConferencia || "CONFERIDO",
+          numeroTransacao: mov.numeroTransacao,
         };
       }
       acc[key].itens.push(mov);
@@ -268,6 +286,9 @@ export default function EntradaMercadoria() {
     }
 
     try {
+      // Gerar número de transação único para este lote
+      const numeroTransacao = `TRX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
       for (const item of itensEntrada) {
         const produto = produtos?.find((p: any) => p.id === item.produtoId);
         const saldoAnterior = produto?.estoque || 0;
@@ -284,6 +305,7 @@ export default function EntradaMercadoria() {
           custoUnitario: item.precoUnitario,
           documentoReferencia: numeroDocumento || undefined,
           fornecedor: fornecedorNome,
+          numeroTransacao,
           observacao: `Entrada manual - Fornecedor: ${fornecedorNome}`,
         });
         
