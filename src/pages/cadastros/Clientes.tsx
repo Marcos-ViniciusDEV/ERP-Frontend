@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, API_BASE_URL } from "@/lib/api";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,7 +231,7 @@ export default function Clientes() {
                       <TableRow key={cliente.id}>
                         <TableCell>
                           <Avatar>
-                            <AvatarImage src={cliente.fotoCaminho || ""} />
+                            <AvatarImage src={cliente.fotoCaminho ? `${API_BASE_URL}${cliente.fotoCaminho}` : ""} />
                             <AvatarFallback>{cliente.nome.substring(0, 2).toUpperCase()}</AvatarFallback>
                           </Avatar>
                         </TableCell>
@@ -272,7 +272,7 @@ export default function Clientes() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="flex flex-col items-center gap-4 mb-4">
                 <Avatar className="h-24 w-24 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                  <AvatarImage src={selectedImage || ""} />
+                  <AvatarImage src={selectedImage?.startsWith("data:") ? selectedImage : selectedImage ? `${API_BASE_URL}${selectedImage}` : ""} />
                   <AvatarFallback className="text-2xl">
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   </AvatarFallback>

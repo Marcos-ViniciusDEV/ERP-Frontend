@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Printer, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Produto } from "@/shared/schema";
+import JsBarcode from "jsbarcode";
 
 interface EtiquetaItem {
   produtoId: number;
@@ -101,6 +102,24 @@ export default function Etiquetas() {
     );
   };
 
+  const gerarCodigoBarrasBase64 = (texto: string) => {
+    try {
+      const canvas = document.createElement("canvas");
+      JsBarcode(canvas, texto, {
+        format: "CODE128",
+        width: 2,
+        height: 40,
+        displayValue: true,
+        fontSize: 14,
+        margin: 0
+      });
+      return canvas.toDataURL("image/png");
+    } catch (e) {
+      console.error("Erro ao gerar código de barras", e);
+      return "";
+    }
+  };
+
   const imprimirEtiquetas = () => {
     if (etiquetas.length === 0) {
       toast.error("Adicione pelo menos uma etiqueta para imprimir");
@@ -132,67 +151,153 @@ export default function Etiquetas() {
             body {
               margin: 0;
               padding: 0;
-              font-family: Arial, sans-serif;
+              font-family: 'Arial', sans-serif;
+              -webkit-print-color-adjust: exact;
             }
             .etiquetas-container {
               display: grid;
               grid-template-columns: repeat(${colunasNum}, 1fr);
               gap: 2mm;
-              padding: 5mm;
+              padding: 2mm;
             }
             .etiqueta {
               width: ${largura}mm;
               height: ${altura}mm;
-              border: 1px solid #ccc;
+              border: 1px solid #000;
               padding: 2mm;
               display: flex;
               flex-direction: column;
-              justify-content: space-between;
+              position: relative;
               page-break-inside: avoid;
               box-sizing: border-box;
-            }
-            .etiqueta-codigo {
-              font-size: 8pt;
-              font-weight: bold;
-            }
-            .etiqueta-descricao {
-              font-size: 7pt;
+              background: white;
               overflow: hidden;
-              text-overflow: ellipsis;
+            }
+            
+            /* Layout inspirado em gôndola de supermercado */
+            .header {
+              margin-bottom: 2px;
+            }
+            .descricao {
+              font-size: 10pt;
+              font-weight: 900;
+              text-transform: uppercase;
+              line-height: 1.1;
+              height: 2.2em; /* Limita a 2 linhas */
+              overflow: hidden;
               display: -webkit-box;
               -webkit-line-clamp: 2;
               -webkit-box-orient: vertical;
             }
-            .etiqueta-preco {
-              font-size: 14pt;
+            
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+              margin-top: auto;
+            }
+            
+            .info-left {
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-end;
+              font-size: 6pt;
+            }
+            
+            .mercado-nome {
               font-weight: bold;
-              text-align: right;
+              text-transform: uppercase;
+              margin-bottom: 2px;
             }
-            .etiqueta-barras {
-              font-size: 9pt;
+            
+            .data {
+              font-family: monospace;
+            }
+            
+            .preco-container {
+              display: flex;
+              align-items: flex-start;
+              line-height: 1;
+              font-weight: 900;
+            }
+            
+            .moeda {
+              font-size: 10pt;
+              margin-top: 4px;
+              margin-right: 2px;
+            }
+            
+            .preco-valor {
+              font-size: 28pt; /* Preço bem grande */
+              letter-spacing: -1px;
+            }
+            
+            .preco-centavos {
+              font-size: 14pt;
+              margin-top: 4px;
+            }
+
+            .barras-container {
               text-align: center;
-              font-family: 'Courier New', monospace;
-              letter-spacing: 2px;
+              margin-top: 2px;
+              padding-top: 2px;
+              display: flex;
+              justify-content: center;
             }
-            @media print {
-              .etiquetas-container {
-                gap: 1mm;
-              }
+            
+            .img-barras {
+              max-width: 100%;
+              height: 35px; /* Altura fixa para o código de barras */
+              object-fit: contain;
             }
+
+            /* Ajustes para etiquetas menores */
+            ${altura < 40 ? `
+              .descricao { font-size: 8pt; }
+              .preco-valor { font-size: 20pt; }
+              .moeda { font-size: 8pt; }
+              .img-barras { height: 25px; }
+            ` : ''}
           </style>
         </head>
         <body>
           <div class="etiquetas-container">
     `;
 
+    const hoje = new Date().toLocaleDateString('pt-BR');
+
     etiquetas.forEach(etiqueta => {
+      const preco = etiqueta.precoVenda / 100;
+      const [inteiro, centavos] = preco.toFixed(2).split('.');
+      
+      // Gerar imagem do código de barras
+      const codigoParaBarras = etiqueta.codigoBarras || etiqueta.codigo;
+      const imgBase64 = gerarCodigoBarrasBase64(codigoParaBarras);
+      
       for (let i = 0; i < etiqueta.quantidade; i++) {
         html += `
           <div class="etiqueta">
-            <div class="etiqueta-codigo">${etiqueta.codigo}</div>
-            <div class="etiqueta-descricao">${etiqueta.descricao}</div>
-            <div class="etiqueta-barras">${etiqueta.codigoBarras || ''}</div>
-            <div class="etiqueta-preco">R$ ${etiqueta.precoVenda.toFixed(2)}</div>
+            <div class="header">
+              <div class="descricao">${etiqueta.descricao}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-left">
+                <div class="mercado-nome">SEU SUPERMERCADO</div>
+                <div class="data">${hoje}</div>
+                <div style="margin-top: 2px;">Cód: ${etiqueta.codigo}</div>
+              </div>
+              
+              <div class="preco-container">
+                <span class="moeda">R$</span>
+                <span class="preco-valor">${inteiro}</span>
+                <span class="preco-centavos">,${centavos}</span>
+              </div>
+            </div>
+
+            <div class="barras-container">
+              ${imgBase64 ? `<img src="${imgBase64}" class="img-barras" />` : ''}
+            </div>
           </div>
         `;
       }
@@ -278,7 +383,7 @@ export default function Etiquetas() {
                             {produto.descricao}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            R$ {produto.precoVenda.toFixed(2)}
+                            R$ {(produto.precoVenda / 100).toFixed(2)}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -359,7 +464,7 @@ export default function Etiquetas() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Código: {etiqueta.codigo} | R${" "}
-                          {etiqueta.precoVenda.toFixed(2)}
+                          {(etiqueta.precoVenda / 100).toFixed(2)}
                         </div>
                       </div>
                       <Input

@@ -256,9 +256,82 @@ export default function Home() {
                         {new Date(venda.dataVenda).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <p className="font-bold text-green-600">
-                      R$ {(venda.valorLiquido / 100).toFixed(2)}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className="font-bold text-green-600">
+                        R$ {(venda.valorLiquido / 100).toFixed(2)}
+                      </p>
+                      <button
+                        onClick={() => {
+                          // Open coupon modal
+                          const couponWindow = window.open("", "_blank", "width=400,height=700");
+                          if (couponWindow) {
+                            couponWindow.document.write(`
+                              <html>
+                                <head>
+                                  <title>Cupom Fiscal - ${venda.numeroVenda}</title>
+                                  <style>
+                                    body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; }
+                                    .text-center { text-align: center; }
+                                    .text-right { text-align: right; }
+                                    .bold { font-weight: bold; }
+                                    .divider { border-top: 1px dashed #000; margin: 5px 0; }
+                                    table { width: 100%; border-collapse: collapse; }
+                                    td { vertical-align: top; padding: 2px 0; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="text-center bold">MERCADO EXEMPLO LTDA</div>
+                                  <div class="text-center">CNPJ: 12.345.678/0001-90</div>
+                                  <div class="text-center">AV. BRASIL, 1000 - CENTRO</div>
+                                  <div class="divider"></div>
+                                  <div class="text-center bold">CUPOM FISCAL ELETRÔNICO</div>
+                                  <div class="text-center">CCF: ${venda.ccf || '000000'} COO: ${venda.coo || '000000'}</div>
+                                  <div class="text-center">PDV: ${venda.pdvOrigemId || 'N/A'}</div>
+                                  <div class="divider"></div>
+                                  <div class="text-center">CONSUMIDOR NÃO IDENTIFICADO</div>
+                                  <div class="divider"></div>
+                                  <table>
+                                    <tr>
+                                      <td colspan="4" class="bold">ITEM CÓDIGO DESCRIÇÃO</td>
+                                    </tr>
+                                    <tr>
+                                      <td class="bold">QTD</td>
+                                      <td class="bold">UN</td>
+                                      <td class="bold text-right">VL UNIT</td>
+                                      <td class="bold text-right">VL TOTAL</td>
+                                    </tr>
+                                    ${(venda.itens || []).map((item: any, index: number) => `
+                                      <tr>
+                                        <td colspan="4">${(index + 1).toString().padStart(3, '0')} ${item.produtoId} ${item.produtoNome || 'Produto'}</td>
+                                      </tr>
+                                      <tr>
+                                        <td>${item.quantidade}</td>
+                                        <td>UN</td>
+                                        <td class="text-right">${(item.precoUnitario / 100).toFixed(2)}</td>
+                                        <td class="text-right">${(item.total / 100).toFixed(2)}</td>
+                                      </tr>
+                                    `).join('')}
+                                  </table>
+                                  <div class="divider"></div>
+                                  <div class="text-right bold" style="font-size: 14px">TOTAL R$ ${(venda.valorLiquido / 100).toFixed(2)}</div>
+                                  <div class="divider"></div>
+                                  <div class="text-right">${venda.formaPagamento || 'N/A'}</div>
+                                  <div class="divider"></div>
+                                  <div class="text-center">${new Date(venda.dataVenda).toLocaleString('pt-BR')}</div>
+                                  <div class="text-center">Operador: ${venda.operadorNome || 'N/A'}</div>
+                                  <div class="text-center" style="margin-top: 20px;">OBRIGADO PELA PREFERÊNCIA!</div>
+                                  <div class="text-center" style="font-size: 10px; margin-top: 10px;">Sistema ERP - RP Info</div>
+                                </body>
+                              </html>
+                            `);
+                            couponWindow.document.close();
+                          }
+                        }}
+                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Ver Cupom
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -267,6 +340,7 @@ export default function Home() {
             )}
           </CardContent>
         </Card>
+
 
         {/* Contas a Pagar Pendentes */}
         <Card>

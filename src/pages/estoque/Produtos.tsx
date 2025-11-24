@@ -21,9 +21,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResumoMvtoTab } from "./components/ResumoMvtoTab";
+import { HistoricoTab } from "./components/HistoricoTab";
 import { Produto } from "@/shared/schema";
 
 // Define Departamento type locally if not available in schema yet
@@ -41,7 +44,7 @@ export default function Produtos() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   
-  const { data: produtos, isLoading } = useQuery<Produto[]>({
+  const { data: produtos, isLoading, error } = useQuery<Produto[]>({
     queryKey: ["produtos"],
     queryFn: async () => {
       const { data } = await api.get("/produtos");
@@ -91,8 +94,9 @@ export default function Produtos() {
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
       resetForm();
     },
-    onError: () => {
-      toast.error("Erro ao atualizar produto");
+    onError: (error: any) => {
+      const message = error.response?.data?.error || error.message || "Erro ao atualizar produto";
+      toast.error(message);
     }
   });
 
@@ -108,7 +112,8 @@ export default function Produtos() {
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao excluir produto");
+      const message = error.response?.data?.error || error.message || "Erro ao excluir produto";
+      toast.error(message);
     }
   });
 
@@ -280,427 +285,409 @@ export default function Produtos() {
   return (
     <DashboardLayout>
       <div className="flex h-[calc(100vh-5rem)] gap-3">
-        {/* Área principal */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0">
-          {/* Cabeçalho compacto */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">Cadastro de Produtos</h1>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSearchOpen(!searchOpen)}>
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["produtos"] })}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Novo
+        {/* Área principal com Abas */}
+        <div className="flex-1 flex flex-col min-w-0 bg-background rounded-md border p-2">
+          <Tabs defaultValue="cadastro" className="flex-1 flex flex-col">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
+              <TabsTrigger value="unidades">Unidades</TabsTrigger>
+              <TabsTrigger value="resumo">Resumo Mvto</TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="cadastro" className="flex-1 flex flex-col mt-2 data-[state=active]:flex">
+              {/* Cabeçalho da tabela (Search e Refresh) */}
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold">Lista de Produtos</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSearchOpen(!searchOpen)}>
+                    <Search className="h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{editingId ? "Editar Produto" : "Cadastrar Novo Produto"}</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-3">
-                        <Label htmlFor="codigo">Código *</Label>
-                        <Input
-                          id="codigo"
-                          value={formData.codigo}
-                          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="col-span-4">
-                        <Label htmlFor="codigoBarras">Código de Barras</Label>
-                        <Input
-                          id="codigoBarras"
-                          value={formData.codigoBarras}
-                          onChange={(e) => setFormData({ ...formData, codigoBarras: e.target.value })}
-                        />
-                      </div>
-                      <div className="col-span-5">
-                        <Label htmlFor="descricao">Descrição *</Label>
-                        <Input
-                          id="descricao"
-                          value={formData.descricao}
-                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-4">
-                        <Label htmlFor="marca">Marca</Label>
-                        <Input
-                          id="marca"
-                          value={formData.marca}
-                          onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                        />
-                      </div>
-                      <div className="col-span-4">
-                        <Label htmlFor="departamentoId">Departamento</Label>
-                        <select
-                          id="departamentoId"
-                          value={formData.departamentoId}
-                          onChange={(e) =>
-                            setFormData({ ...formData, departamentoId: parseInt(e.target.value) })
-                          }
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value={0}>Selecione</option>
-                          {departamentos?.map((dep: Departamento) => (
-                            <option key={dep.id} value={dep.id}>
-                              {dep.nome}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-span-2">
-                        <Label htmlFor="unidade">Unidade</Label>
-                        <Input
-                          id="unidade"
-                          value={formData.unidade}
-                          onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label htmlFor="localizacao">Localização</Label>
-                        <Input
-                          id="localizacao"
-                          value={formData.localizacao}
-                          onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-12 gap-4 border-t pt-4">
-                      <div className="col-span-3">
-                        <Label htmlFor="precoCusto">Preço Custo</Label>
-                        <Input
-                          id="precoCusto"
-                          type="number"
-                          step="0.01"
-                          value={formData.precoCusto ? (formData.precoCusto / 100).toFixed(2) : ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, precoCusto: Math.round((parseFloat(e.target.value) || 0) * 100) })
-                          }
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label htmlFor="margemLucro">Margem (%)</Label>
-                        <Input
-                          id="margemLucro"
-                          type="number"
-                          value={formData.margemLucro || ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, margemLucro: parseInt(e.target.value) || 0 })
-                          }
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label htmlFor="precoVenda">Preço Venda</Label>
-                        <Input
-                          id="precoVenda"
-                          type="number"
-                          step="0.01"
-                          value={formData.precoVenda ? (formData.precoVenda / 100).toFixed(2) : ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, precoVenda: Math.round((parseFloat(e.target.value) || 0) * 100) })
-                          }
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label htmlFor="estoque">Estoque Atual</Label>
-                        <Input
-                          id="estoque"
-                          type="number"
-                          value={formData.estoque || ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, estoque: parseInt(e.target.value) || 0 })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-6 pt-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="ativo"
-                          checked={formData.ativo}
-                          onCheckedChange={(checked) => setFormData({ ...formData, ativo: !!checked })}
-                        />
-                        <Label htmlFor="ativo">Ativo</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="controlaEstoque"
-                          checked={formData.controlaEstoque}
-                          onCheckedChange={(checked) => setFormData({ ...formData, controlaEstoque: !!checked })}
-                        />
-                        <Label htmlFor="controlaEstoque">Controla Estoque</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="permiteDesconto"
-                          checked={formData.permiteDesconto}
-                          onCheckedChange={(checked) => setFormData({ ...formData, permiteDesconto: !!checked })}
-                        />
-                        <Label htmlFor="permiteDesconto">Permite Desconto</Label>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button type="submit">Salvar</Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {searchOpen && (
-            <div className="pb-2">
-              <div className="flex items-center gap-2 border rounded-md px-2 bg-background">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  ref={searchInputRef}
-                  placeholder="Buscar por código, código de barras, descrição ou marca... (ESC para fechar)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setSearchOpen(false);
-                      setSearchTerm("");
-                    }
-                  }}
-                  className="text-sm border-none shadow-none focus-visible:ring-0"
-                />
+                  <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["produtos"] })}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Tabela de produtos */}
-          <Card className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-auto">
-              {isLoading ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">Carregando...</div>
-              ) : produtosFiltrados && produtosFiltrados.length > 0 ? (
-                <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10">
-                    <TableRow className="text-xs">
-                      <TableHead className="w-[110px] py-2">Cód. Barras</TableHead>
-                      <TableHead className="w-[90px] py-2">Código</TableHead>
-                      <TableHead className="min-w-[250px] py-2">Descrição</TableHead>
-                      <TableHead className="w-[130px] py-2">Marca</TableHead>
-                      <TableHead className="w-[100px] py-2">Grupo</TableHead>
-                      <TableHead className="w-[70px] text-right py-2">Estoque</TableHead>
-                      <TableHead className="w-[100px] text-right py-2">Preço PDV</TableHead>
-                      <TableHead className="w-[90px] text-right py-2">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {produtosFiltrados.map((produto: any) => (
-                      <TableRow
-                        key={produto.id}
-                        onClick={() => setSelectedProduto(produto)}
-                        className={`cursor-pointer text-sm h-9 ${
-                          selectedProduto?.id === produto.id ? "bg-muted" : "hover:bg-muted/50"
-                        }`}
-                      >
-                        <TableCell className="font-mono text-xs py-1">{produto.codigoBarras || "-"}</TableCell>
-                        <TableCell className="font-mono text-xs py-1">{produto.codigo}</TableCell>
-                        <TableCell className="font-medium py-1">{produto.descricao}</TableCell>
-                        <TableCell className="py-1">{produto.marca || "-"}</TableCell>
-                        <TableCell className="py-1">
-                          {departamentos?.find((d: Departamento) => d.id === produto.departamentoId)?.nome || "-"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono py-1">
-                          <span className={produto.estoque <= produto.estoqueMinimo ? "text-red-600 font-bold" : ""}>
-                            {produto.estoque || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono py-1">
-                          R$ {(produto.precoVenda / 100).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right py-1">
-                          <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => handleEdit(produto)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => handleDelete(produto.id)}
-                            >
-                              <Trash2 className="h-3 w-3 text-red-600" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  {searchTerm ? "Nenhum produto encontrado." : "Nenhum produto cadastrado."}
+              {searchOpen && (
+                <div className="pb-2">
+                  <div className="flex items-center gap-2 border rounded-md px-2 bg-background">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      ref={searchInputRef}
+                      placeholder="Buscar por código, código de barras, descrição ou marca... (ESC para fechar)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setSearchOpen(false);
+                          setSearchTerm("");
+                        }
+                      }}
+                      className="text-sm border-none shadow-none focus-visible:ring-0"
+                    />
+                  </div>
                 </div>
               )}
-            </div>
-          </Card>
 
-          {/* Painel de detalhes inferior */}
+              {/* Tabela de produtos */}
+              <div className="flex-1 overflow-auto border rounded-md">
+                {isLoading ? (
+                  <div className="p-8 text-center text-muted-foreground text-sm">Carregando...</div>
+                ) : error ? (
+                  <div className="p-8 text-center text-red-500 text-sm">
+                    Erro ao carregar produtos: {(error as any).message || "Erro desconhecido"}
+                  </div>
+                ) : produtosFiltrados && produtosFiltrados.length > 0 ? (
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow className="text-xs">
+                        <TableHead className="w-[110px] py-2">Cód. Barras</TableHead>
+                        <TableHead className="w-[90px] py-2">Código</TableHead>
+                        <TableHead className="min-w-[250px] py-2">Descrição</TableHead>
+                        <TableHead className="w-[130px] py-2">Marca</TableHead>
+                        <TableHead className="w-[100px] py-2">Grupo</TableHead>
+                        <TableHead className="w-[70px] text-right py-2">Estoque</TableHead>
+                        <TableHead className="w-[100px] text-right py-2">Preço PDV</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {produtosFiltrados.map((produto: any) => (
+                        <TableRow
+                          key={produto.id}
+                          onClick={() => setSelectedProduto(produto)}
+                          className={`cursor-pointer text-sm h-9 ${
+                            selectedProduto?.id === produto.id ? "bg-muted" : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <TableCell className="font-mono text-xs py-1">{produto.codigoBarras || "-"}</TableCell>
+                          <TableCell className="font-mono text-xs py-1">{produto.codigo}</TableCell>
+                          <TableCell className="font-medium py-1">{produto.descricao}</TableCell>
+                          <TableCell className="py-1">{produto.marca || "-"}</TableCell>
+                          <TableCell className="py-1">
+                            {departamentos?.find((d: Departamento) => d.id === produto.departamentoId)?.nome || "-"}
+                          </TableCell>
+                          <TableCell className="text-right font-mono py-1">
+                            <span className={produto.estoque <= produto.estoqueMinimo ? "text-red-600 font-bold" : ""}>
+                              {produto.estoque || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right font-mono py-1">
+                            R$ {(produto.precoVenda / 100).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground text-sm">
+                    {searchTerm ? "Nenhum produto encontrado." : "Nenhum produto cadastrado."}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="unidades" className="flex-1 p-4 border rounded-md mt-2">
+              <div className="text-center text-muted-foreground">Funcionalidade em desenvolvimento</div>
+            </TabsContent>
+
+            <TabsContent value="resumo" className="flex-1 mt-2 overflow-auto">
+              <ResumoMvtoTab produtoId={selectedProduto?.id} />
+            </TabsContent>
+
+            <TabsContent value="historico" className="flex-1 mt-2 overflow-auto">
+              <HistoricoTab produtoId={selectedProduto?.id} />
+            </TabsContent>
+          </Tabs>
+
+          {/* Painel de detalhes inferior (mantido) */}
           {selectedProduto && (
-            <Card className="border-t border-border py-0">
-              <CardContent className="p-0">
-                <div className="grid grid-cols-12 bg-muted/30">
-                  {/* Linha 1: Cabeçalho e Preços Principais */}
-                  <div className="col-span-12 p-1 bg-muted/50 font-semibold text-xs flex justify-between items-center">
-                    <span>Detalhes do Produto: {selectedProduto.descricao}</span>
-                    <span className="font-mono">{selectedProduto.codigo}</span>
-                  </div>
-
-                  {/* Bloco de Preços e Margens */}
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Preço Venda</p>
-                    <p className="text-lg font-bold text-green-600 font-mono">
-                      R$ {(selectedProduto.precoVenda / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">% Lucro</p>
-                    <p className="text-sm font-mono">
-                      {calcularMargem(selectedProduto.precoVenda, selectedProduto.precoCusto).toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Margem</p>
-                    <p className="text-sm font-mono text-orange-600">
-                      {selectedProduto.margemLucro}%
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Preço 2</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.precoVenda2 / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Atacado</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.precoAtacado / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 bg-yellow-50/50 border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Estoque Atual</p>
-                    <p className="text-lg font-bold font-mono">{selectedProduto.estoque}</p>
-                  </div>
-
-                  {/* Linha 2: Custos */}
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Médio</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.custoMedio / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Contábil</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.custoContabil / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Oper.</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.custoOperacional / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Fiscal</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.custoFiscal / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Venda</p>
-                    <p className="text-sm font-mono">
-                      R$ {(selectedProduto.precoCusto / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-1 border-b border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Lucro Unit.</p>
-                    <p className="text-sm font-mono text-blue-600">
-                      R$ {(calcularLucro(selectedProduto.precoVenda, selectedProduto.precoCusto) / 100).toFixed(2)}
-                    </p>
-                  </div>
-
-                  {/* Linha 3: Estoques Detalhados */}
-                  <div className="col-span-2 p-1 border-r border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Loja</p>
-                    <p className="text-sm font-mono">{selectedProduto.estoqueLoja}</p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Depósito</p>
-                    <p className="text-sm font-mono">{selectedProduto.estoqueDeposito}</p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Troca</p>
-                    <p className="text-sm font-mono">{selectedProduto.estoqueTroca}</p>
-                  </div>
-                  <div className="col-span-2 p-1 border-r border-muted-foreground/10">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Mínimo</p>
-                    <p className="text-sm font-mono">{selectedProduto.estoqueMinimo}</p>
-                  </div>
-                  <div className="col-span-4 p-1 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${selectedProduto.ativo ? "bg-green-500" : "bg-red-500"}`} />
-                      <span className="text-xs font-medium">{selectedProduto.ativo ? "Ativo" : "Inativo"}</span>
+            <div className="mt-2 border-t pt-2">
+              <Card className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-12 bg-muted/30 text-xs">
+                     {/* Linha 1: Cabeçalho e Preços Principais */}
+                    <div className="col-span-12 p-1 bg-muted/50 font-semibold flex justify-between items-center">
+                      <span>Detalhes do Produto: {selectedProduto.descricao}</span>
+                      <span className="font-mono">{selectedProduto.codigo}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">Controla Est.</span>
+
+                    {/* Bloco de Preços e Margens */}
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Preço Venda</p>
+                      <p className="text-lg font-bold text-green-600 font-mono">
+                        R$ {(selectedProduto.precoVenda / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">% Lucro</p>
+                      <p className="text-sm font-mono">
+                        {calcularMargem(selectedProduto.precoVenda, selectedProduto.precoCusto).toFixed(2)}%
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Margem</p>
+                      <p className="text-sm font-mono text-orange-600">
+                        {selectedProduto.margemLucro}%
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Preço 2</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.precoVenda2 / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Atacado</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.precoAtacado / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 bg-yellow-50/50 border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Estoque Atual</p>
+                      <p className="text-lg font-bold font-mono">{selectedProduto.estoque}</p>
+                    </div>
+
+                    {/* Linha 2: Custos */}
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Médio</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.custoMedio / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Contábil</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.custoContabil / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Oper.</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.custoOperacional / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Fiscal</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.custoFiscal / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Custo Venda</p>
+                      <p className="text-sm font-mono">
+                        R$ {(selectedProduto.precoCusto / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Lucro Unit.</p>
+                      <p className="text-sm font-mono text-blue-600">
+                        R$ {(calcularLucro(selectedProduto.precoVenda, selectedProduto.precoCusto) / 100).toFixed(2)}
+                      </p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
 
-                  {/* Linha 4: Datas e Outros */}
-                  <div className="col-span-3 p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Última Compra</p>
-                    <p className="text-xs font-mono">
-                      {selectedProduto.dataUltimaCompra ? new Date(selectedProduto.dataUltimaCompra).toLocaleDateString() : "-"}
-                    </p>
+        {/* Sidebar Direita */}
+        <div className="w-32 flex flex-col gap-2">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" variant="ghost">
+                Incluir
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingId ? "Editar Produto" : "Cadastrar Novo Produto"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-3">
+                    <Label htmlFor="codigo">Código *</Label>
+                    <Input
+                      id="codigo"
+                      value={formData.codigo}
+                      onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                      required
+                    />
                   </div>
-                  <div className="col-span-2 p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Qtd. Últ. Compra</p>
-                    <p className="text-xs font-mono">{selectedProduto.quantidadeUltimaCompra}</p>
+                  <div className="col-span-4">
+                    <Label htmlFor="codigoBarras">Código de Barras</Label>
+                    <Input
+                      id="codigoBarras"
+                      value={formData.codigoBarras}
+                      onChange={(e) => setFormData({ ...formData, codigoBarras: e.target.value })}
+                    />
                   </div>
-                  <div className="col-span-3 p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Primeira Venda</p>
-                    <p className="text-xs font-mono">
-                      {selectedProduto.dataPrimeiraVenda ? new Date(selectedProduto.dataPrimeiraVenda).toLocaleDateString() : "-"}
-                    </p>
-                  </div>
-                  <div className="col-span-4 p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Localização</p>
-                    <p className="text-xs font-mono truncate" title={selectedProduto.localizacao ?? undefined}>
-                      {selectedProduto.localizacao || "-"}
-                    </p>
+                  <div className="col-span-5">
+                    <Label htmlFor="descricao">Descrição *</Label>
+                    <Input
+                      id="descricao"
+                      value={formData.descricao}
+                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                      required
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-4">
+                    <Label htmlFor="marca">Marca</Label>
+                    <Input
+                      id="marca"
+                      value={formData.marca}
+                      onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Label htmlFor="departamentoId">Departamento</Label>
+                    <select
+                      id="departamentoId"
+                      value={formData.departamentoId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, departamentoId: parseInt(e.target.value) })
+                      }
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value={0}>Selecione</option>
+                      {departamentos?.map((dep: Departamento) => (
+                        <option key={dep.id} value={dep.id}>
+                          {dep.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="unidade">Unidade</Label>
+                    <Input
+                      id="unidade"
+                      value={formData.unidade}
+                      onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="localizacao">Localização</Label>
+                    <Input
+                      id="localizacao"
+                      value={formData.localizacao}
+                      onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 border-t pt-4">
+                  <div className="col-span-3">
+                    <Label htmlFor="precoCusto">Preço Custo</Label>
+                    <Input
+                      id="precoCusto"
+                      type="number"
+                      step="0.01"
+                      value={formData.precoCusto ? (formData.precoCusto / 100).toFixed(2) : ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, precoCusto: Math.round((parseFloat(e.target.value) || 0) * 100) })
+                      }
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="margemLucro">Margem (%)</Label>
+                    <Input
+                      id="margemLucro"
+                      type="number"
+                      value={formData.margemLucro || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, margemLucro: parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="precoVenda">Preço Venda</Label>
+                    <Input
+                      id="precoVenda"
+                      type="number"
+                      step="0.01"
+                      value={formData.precoVenda ? (formData.precoVenda / 100).toFixed(2) : ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, precoVenda: Math.round((parseFloat(e.target.value) || 0) * 100) })
+                      }
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="estoque">Estoque Atual</Label>
+                    <Input
+                      id="estoque"
+                      type="number"
+                      value={formData.estoque || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, estoque: parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-6 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="ativo"
+                      checked={formData.ativo}
+                      onCheckedChange={(checked) => setFormData({ ...formData, ativo: !!checked })}
+                    />
+                    <Label htmlFor="ativo">Ativo</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="controlaEstoque"
+                      checked={formData.controlaEstoque}
+                      onCheckedChange={(checked) => setFormData({ ...formData, controlaEstoque: !!checked })}
+                    />
+                    <Label htmlFor="controlaEstoque">Controla Estoque</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="permiteDesconto"
+                      checked={formData.permiteDesconto}
+                      onCheckedChange={(checked) => setFormData({ ...formData, permiteDesconto: !!checked })}
+                    />
+                    <Label htmlFor="permiteDesconto">Permite Desconto</Label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Salvar</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Button 
+            className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
+            variant="ghost"
+            onClick={() => selectedProduto && handleEdit(selectedProduto)}
+            disabled={!selectedProduto}
+          >
+            Alterar
+          </Button>
+          <Button 
+            className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
+            variant="ghost"
+            onClick={() => selectedProduto && handleDelete(selectedProduto.id)}
+            disabled={!selectedProduto}
+          >
+            Excluir
+          </Button>
+          <Button 
+            className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
+            variant="ghost"
+            onClick={() => window.history.back()}
+          >
+            Sair
+          </Button>
         </div>
       </div>
     </DashboardLayout>

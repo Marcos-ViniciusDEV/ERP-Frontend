@@ -154,6 +154,12 @@ export function useMenuItems() {
       ],
     },
     {
+      label: "PDV",
+      items: [
+        { label: "Gerenciar PDV", path: "/pdv/gerenciar" },
+      ],
+    },
+    {
       label: "Específicos",
       items: [{ label: "Integrações", path: "/especificos/integracoes" }],
     },

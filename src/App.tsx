@@ -53,6 +53,7 @@ import { Register } from "./pages/Register";
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
 import { setAuthToken } from "./_core/hooks/useAuth";
+import GerenciarPDV from "./pages/pdv/GerenciarPDV";
 
 /**
  * Componente de Roteamento
@@ -95,6 +96,7 @@ function Router() {
         path="/relatorios/movimento-vendedores"
         component={MovimentoVendedores}
       />
+      <Route path="/pdv/gerenciar" component={GerenciarPDV} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
