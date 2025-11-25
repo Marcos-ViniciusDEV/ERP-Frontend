@@ -6,7 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +20,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Send } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -262,6 +261,26 @@ export default function Produtos() {
     deleteProduto.mutate({ id });
   };
 
+  const handleNewProduct = () => {
+    resetForm();
+    
+    // Generate unique 6-digit code
+    let code = "";
+    let isUnique = false;
+    let attempts = 0;
+    
+    while (!isUnique && attempts < 100) {
+      const num = Math.floor(100000 + Math.random() * 900000);
+      code = num.toString();
+      const exists = produtos?.some((p: any) => p.codigo === code);
+      if (!exists) isUnique = true;
+      attempts++;
+    }
+    
+    setFormData(prev => ({ ...prev, codigo: code }));
+    setOpen(true);
+  };
+
   const calcularMargem = (precoVenda: number, precoCusto: number) => {
     if (precoCusto === 0) return 0;
     return ((precoVenda - precoCusto) / precoCusto) * 100;
@@ -302,6 +321,23 @@ export default function Produtos() {
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSearchOpen(!searchOpen)}>
                     <Search className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={async () => {
+                      try {
+                        toast.info("Enviando carga para PDVs...");
+                        await api.post('/pdv/enviar-carga', {});
+                        toast.success("Carga enviada com sucesso!");
+                        queryClient.invalidateQueries({ queryKey: ["produtos"] });
+                      } catch (error) {
+                        toast.error("Erro ao enviar carga");
+                      }
+                    }}
+                    title="Enviar Carga para PDVs"
+                  >
+                    <Send className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["produtos"] })}>
                     <RefreshCw className="h-4 w-4" />
@@ -420,6 +456,12 @@ export default function Produtos() {
                       </p>
                     </div>
                     <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Preço PDV</p>
+                      <p className="text-lg font-bold text-blue-600 font-mono">
+                        R$ {((selectedProduto.precoPdv || 0) / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="col-span-2 p-1 border-r border-b border-muted-foreground/10">
                       <p className="text-[10px] text-muted-foreground uppercase font-bold">% Lucro</p>
                       <p className="text-sm font-mono">
                         {calcularMargem(selectedProduto.precoVenda, selectedProduto.precoCusto).toFixed(2)}%
@@ -495,17 +537,12 @@ export default function Produtos() {
         {/* Sidebar Direita */}
         <div className="w-32 flex flex-col gap-2">
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" variant="ghost">
-                Incluir
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Editar Produto" : "Cadastrar Novo Produto"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-12 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-3">
                     <Label htmlFor="codigo">Código *</Label>
                     <Input
@@ -534,7 +571,7 @@ export default function Produtos() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-12 gap-4">
+                <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-4">
                     <Label htmlFor="marca">Marca</Label>
                     <Input
@@ -579,7 +616,7 @@ export default function Produtos() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 border-t pt-4">
+                <div className="grid grid-cols-12 gap-6 border-t pt-4">
                   <div className="col-span-3">
                     <Label htmlFor="precoCusto">Preço Custo</Label>
                     <Input
@@ -664,6 +701,14 @@ export default function Produtos() {
               </form>
             </DialogContent>
           </Dialog>
+
+          <Button 
+            className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
+            variant="ghost"
+            onClick={handleNewProduct}
+          >
+            Incluir
+          </Button>
 
           <Button 
             className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 

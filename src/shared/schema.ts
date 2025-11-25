@@ -18,6 +18,7 @@ export interface Produto {
   departamentoId: number | null;
   unidade: string;
   precoVenda: number;
+  precoPdv: number;
   precoVenda2: number;
   precoAtacado: number;
   precoCusto: number;
