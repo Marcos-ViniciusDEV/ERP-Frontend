@@ -19,26 +19,44 @@ export default function ConsultarVendas() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   
-  const { data: vendas, isLoading } = useQuery({
-    queryKey: ["vendas"],
+  const { data: vendas, isLoading, refetch, isFetched } = useQuery({
+    queryKey: ["vendas", dataInicio, dataFim],
     queryFn: async () => {
-      const { data } = await api.get("/vendas");
+      // Se não tiver datas, não busca nada (ou busca tudo se a API permitir, mas o requisito é não buscar tudo)
+      if (!dataInicio && !dataFim) return [];
+      
+      const params = new URLSearchParams();
+      if (dataInicio) params.append("dataInicio", dataInicio);
+      if (dataFim) params.append("dataFim", dataFim);
+      
+      // Usar endpoint de período se houver datas, ou o geral se for para buscar tudo (mas aqui vamos restringir)
+      const endpoint = (dataInicio || dataFim) ? `/vendas/periodo?${params.toString()}` : "/vendas";
+      
+      const { data } = await api.get(endpoint);
       return data;
+    },
+    enabled: false, // Não buscar automaticamente
+  });
+
+  const handleSearch = () => {
+    if (!dataInicio && !dataFim) {
+        // Opcional: alertar usuário
+        return; 
     }
-  });
+    refetch();
+  };
 
-  const vendasFiltradas = vendas?.filter((venda: any) => {
-    if (!dataInicio && !dataFim) return true;
-    const dataVenda = new Date(venda.dataVenda);
-    const inicio = dataInicio ? new Date(dataInicio) : null;
-    const fim = dataFim ? new Date(dataFim) : null;
+  const totalBruto = vendas?.reduce(
+    (acc: number, venda: any) => acc + venda.valorTotal,
+    0
+  );
 
-    if (inicio && dataVenda < inicio) return false;
-    if (fim && dataVenda > fim) return false;
-    return true;
-  });
+  const totalDescontos = vendas?.reduce(
+    (acc: number, venda: any) => acc + venda.valorDesconto,
+    0
+  );
 
-  const totalVendas = vendasFiltradas?.reduce(
+  const totalLiquido = vendas?.reduce(
     (acc: number, venda: any) => acc + venda.valorLiquido,
     0
   );
@@ -58,7 +76,7 @@ export default function ConsultarVendas() {
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4 items-end">
               <div>
                 <Label htmlFor="dataInicio">Data Início</Label>
                 <Input
@@ -77,7 +95,10 @@ export default function ConsultarVendas() {
                   onChange={(e) => setDataFim(e.target.value)}
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex gap-2">
+                <Button onClick={handleSearch}>
+                    Buscar
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -85,7 +106,7 @@ export default function ConsultarVendas() {
                     setDataFim("");
                   }}
                 >
-                  Limpar Filtros
+                  Limpar
                 </Button>
               </div>
             </div>
@@ -96,17 +117,32 @@ export default function ConsultarVendas() {
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
               <span>Vendas Realizadas</span>
-              {totalVendas !== undefined && (
-                <span className="text-lg font-bold text-green-600">
-                  Total: R$ {(totalVendas / 100).toFixed(2)}
-                </span>
+              {totalLiquido !== undefined && (
+                <div className="flex gap-6 text-sm">
+                    <div className="flex flex-col items-end">
+                        <span className="text-muted-foreground">Total Bruto</span>
+                        <span className="font-bold">R$ {(totalBruto / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-muted-foreground">Total Descontos</span>
+                        <span className="font-bold text-red-500">- R$ {(totalDescontos / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-muted-foreground">Total Líquido</span>
+                        <span className="font-bold text-green-600 text-lg">R$ {(totalLiquido / 100).toFixed(2)}</span>
+                    </div>
+                </div>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-muted-foreground">Carregando...</p>
-            ) : vendasFiltradas && vendasFiltradas.length > 0 ? (
+            ) : !isFetched ? (
+                <p className="text-muted-foreground text-center py-8">
+                    Selecione um período e clique em "Buscar" para visualizar as vendas.
+                </p>
+            ) : vendas && vendas.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -119,15 +155,15 @@ export default function ConsultarVendas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vendasFiltradas.map((venda: any) => (
+                  {vendas.map((venda: any) => (
                     <TableRow key={venda.id}>
                       <TableCell>
                         {new Date(venda.dataVenda).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="font-medium">{venda.numeroVenda}</TableCell>
-                      <TableCell>{venda.operador || "-"}</TableCell>
+                      <TableCell>{venda.operadorNome || "-"}</TableCell>
                       <TableCell className="text-right">
-                        R$ {(venda.valorBruto / 100).toFixed(2)}
+                        R$ {(venda.valorTotal / 100).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         R$ {(venda.valorDesconto / 100).toFixed(2)}
@@ -141,9 +177,7 @@ export default function ConsultarVendas() {
               </Table>
             ) : (
               <p className="text-muted-foreground">
-                {dataInicio || dataFim
-                  ? "Nenhuma venda encontrada no período selecionado."
-                  : "Nenhuma venda registrada."}
+                Nenhuma venda encontrada no período selecionado.
               </p>
             )}
           </CardContent>

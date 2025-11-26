@@ -24,6 +24,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileUp, Plus, Package, ChevronDown, ChevronRight, Upload, FileText, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function EntradaMercadoria() {
   const [activeTab, setActiveTab] = useState("nfe");
@@ -616,6 +623,8 @@ export default function EntradaMercadoria() {
                   <DialogTitle>Nova Entrada Manual de Mercadoria</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6">
+
+
                   {/* Dados da Entrada */}
                   <Card>
                     <CardHeader>
@@ -625,19 +634,22 @@ export default function EntradaMercadoria() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="fornecedor">Fornecedor *</Label>
-                          <select
-                            id="fornecedor"
-                            value={fornecedorId}
-                            onChange={(e) => setFornecedorId(parseInt(e.target.value))}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          <Select
+                            value={fornecedorId.toString()}
+                            onValueChange={(value) => setFornecedorId(parseInt(value))}
                           >
-                            <option value={0}>Selecione um fornecedor</option>
-                            {fornecedores?.map((fornecedor: any) => (
-                              <option key={fornecedor.id} value={fornecedor.id}>
-                                {fornecedor.nomeFantasia || fornecedor.razaoSocial}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger id="fornecedor">
+                              <SelectValue placeholder="Selecione um fornecedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">Selecione um fornecedor</SelectItem>
+                              {fornecedores?.map((fornecedor: any) => (
+                                <SelectItem key={fornecedor.id} value={fornecedor.id.toString()}>
+                                  {fornecedor.nomeFantasia || fornecedor.razaoSocial}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <Label htmlFor="numeroDocumento">Número do Documento</Label>
@@ -658,24 +670,27 @@ export default function EntradaMercadoria() {
                       <CardTitle className="text-lg">Adicionar Itens</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-2">
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-6">
                           <Label htmlFor="produto">Produto</Label>
-                          <select
-                            id="produto"
-                            value={novoProdutoId}
-                            onChange={(e) => setNovoProdutoId(parseInt(e.target.value))}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          <Select
+                            value={novoProdutoId.toString()}
+                            onValueChange={(value) => setNovoProdutoId(parseInt(value))}
                           >
-                            <option value={0}>Selecione um produto</option>
-                            {produtos?.map((produto: any) => (
-                              <option key={produto.id} value={produto.id}>
-                                {produto.codigo} - {produto.descricao}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger id="produto">
+                              <SelectValue placeholder="Selecione um produto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">Selecione um produto</SelectItem>
+                              {produtos?.map((produto: any) => (
+                                <SelectItem key={produto.id} value={produto.id.toString()}>
+                                  {produto.codigo} - {produto.descricao}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div>
+                        <div className="col-span-3">
                           <Label htmlFor="quantidade">Quantidade</Label>
                           <Input
                             id="quantidade"
@@ -684,8 +699,8 @@ export default function EntradaMercadoria() {
                             onChange={(e) => setNovaQuantidade(parseInt(e.target.value))}
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="preco">Preço Unit. (R$)</Label>
+                        <div className="col-span-3">
+                          <Label htmlFor="preco">Preço Unit.</Label>
                           <Input
                             id="preco"
                             type="number"
@@ -697,7 +712,7 @@ export default function EntradaMercadoria() {
                           />
                         </div>
                       </div>
-                      <Button onClick={handleAdicionarItem} variant="outline" className="w-full">
+                      <Button onClick={handleAdicionarItem} variant="outline" className="w-full mt-2">
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar Item
                       </Button>

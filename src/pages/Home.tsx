@@ -286,7 +286,7 @@ export default function Home() {
                                   <div class="divider"></div>
                                   <div class="text-center bold">CUPOM FISCAL ELETRÔNICO</div>
                                   <div class="text-center">CCF: ${venda.ccf || '000000'} COO: ${venda.coo || '000000'}</div>
-                                  <div class="text-center">PDV: ${venda.pdvOrigemId || 'N/A'}</div>
+                                  <div class="text-center">PDV: ${venda.pdvId || 'N/A'}</div>
                                   <div class="divider"></div>
                                   <div class="text-center">CONSUMIDOR NÃO IDENTIFICADO</div>
                                   <div class="divider"></div>
@@ -313,9 +313,14 @@ export default function Home() {
                                     `).join('')}
                                   </table>
                                   <div class="divider"></div>
+                                  ${venda.valorDesconto > 0 ? `
+                                    <div class="text-right">SUBTOTAL R$ ${(venda.valorTotal / 100).toFixed(2)}</div>
+                                    <div class="text-right">DESCONTO R$ -${(venda.valorDesconto / 100).toFixed(2)}</div>
+                                  ` : ''}
                                   <div class="text-right bold" style="font-size: 14px">TOTAL R$ ${(venda.valorLiquido / 100).toFixed(2)}</div>
                                   <div class="divider"></div>
-                                  <div class="text-right">${venda.formaPagamento || 'N/A'}</div>
+                                  <div class="text-right">${venda.formaPagamento || 'N/A'} R$ ${(venda.valorLiquido / 100).toFixed(2)}</div>
+                                  <div class="text-right">TROCO R$ 0.00</div>
                                   <div class="divider"></div>
                                   <div class="text-center">${new Date(venda.dataVenda).toLocaleString('pt-BR')}</div>
                                   <div class="text-center">Operador: ${venda.operadorNome || 'N/A'}</div>
