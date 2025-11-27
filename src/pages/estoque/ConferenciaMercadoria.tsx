@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, CheckCircle, AlertTriangle, Clock, Barcode, RefreshCcw, Trash2 } from "lucide-react";
+import { Package, CheckCircle, Clock, Barcode, RefreshCcw, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 

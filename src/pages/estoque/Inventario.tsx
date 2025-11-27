@@ -29,7 +29,7 @@ export default function Inventario() {
   const [contagemOpen, setContagemOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: inventarios, refetch } = useQuery({
+  const { data: inventarios } = useQuery({
     queryKey: ["inventarios"],
     queryFn: async () => {
       const { data } = await api.get("/inventario");

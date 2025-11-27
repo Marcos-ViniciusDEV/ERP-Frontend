@@ -1,19 +1,23 @@
 /**
- * Base HTTP error class with status code.
- * Throw this from route handlers to send specific HTTP errors.
+ * Base HTTP error interface with status code.
  */
-export class HttpError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string
-  ) {
-    super(message);
-    this.name = "HttpError";
-  }
+export interface HttpError extends Error {
+  statusCode: number;
 }
 
+/**
+ * Factory function to create HTTP errors.
+ * Throw this from route handlers to send specific HTTP errors.
+ */
+export const createHttpError = (statusCode: number, message: string): HttpError => {
+  const error = new Error(message) as HttpError;
+  error.name = "HttpError";
+  error.statusCode = statusCode;
+  return error;
+};
+
 // Convenience constructors
-export const BadRequestError = (msg: string) => new HttpError(400, msg);
-export const UnauthorizedError = (msg: string) => new HttpError(401, msg);
-export const ForbiddenError = (msg: string) => new HttpError(403, msg);
-export const NotFoundError = (msg: string) => new HttpError(404, msg);
+export const BadRequestError = (msg: string) => createHttpError(400, msg);
+export const UnauthorizedError = (msg: string) => createHttpError(401, msg);
+export const ForbiddenError = (msg: string) => createHttpError(403, msg);
+export const NotFoundError = (msg: string) => createHttpError(404, msg);
