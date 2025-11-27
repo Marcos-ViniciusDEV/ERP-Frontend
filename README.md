@@ -229,7 +229,8 @@ Output will be in `dist/` directory.
 
 ## 📝 License
 
-ISC
+ Author: Marcos Vinicius
+ Last Updated: November 2025
 
 ---
 
