@@ -36,6 +36,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Produtos from "./pages/estoque/Produtos";
 import Clientes from "./pages/cadastros/Clientes";
+import Departamentos from "./pages/cadastros/Departamentos";
 import Fornecedores from "./pages/compras/Fornecedores";
 import ContasPagar from "./pages/financeiro/ContasPagar";
 import EntradaMercadoria from "@/pages/estoque/EntradaMercadoria";
@@ -48,6 +49,9 @@ import MovimentacaoCaixa from "./pages/vendas/MovimentacaoCaixa";
 import Etiquetas from "./pages/Etiquetas";
 import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
 import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
+import RelatorioSangrias from "@/pages/relatorios/RelatorioSangrias";
+import ResumoDiarioVendas from "@/pages/relatorios/ResumoDiarioVendas";
+import RelatorioEmDesenvolvimento from "@/pages/relatorios/RelatorioEmDesenvolvimento";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
@@ -78,8 +82,10 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
       <Route path={"/"} component={Home} />
-      <Route path={"/estoque/produtos"} component={Produtos} />
+      {/* Cadastros */}
       <Route path={"/cadastros/clientes"} component={Clientes} />
+      <Route path="/cadastros/departamentos" component={Departamentos} />
+      <Route path={"/estoque/produtos"} component={Produtos} />
       <Route path={"/compras/fornecedores"} component={Fornecedores} />
       <Route path={"/financeiro/pagar"} component={ContasPagar} />
       <Route path="/estoque/entrada" component={EntradaMercadoria} />
@@ -96,6 +102,31 @@ function Router() {
         path="/relatorios/movimento-vendedores"
         component={MovimentoVendedores}
       />
+      <Route
+        path="/relatorios/sangrias"
+        component={RelatorioSangrias}
+      />
+      <Route
+        path="/relatorios/resumo-diario-vendas"
+        component={ResumoDiarioVendas}
+      />
+      
+      {/* Relatórios em Desenvolvimento */}
+      <Route path="/relatorios/resumo-documento" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-documento-cancelamentos" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/relacao-produtos" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-movimento" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/movimento-unidades" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/tipo-movimento" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/marcas-vendas" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/movimento-hierarquico" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/mesa-movimento" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-lancamento" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-produto" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-faturamentos" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/notas-contribuintes" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/etiquetas-diario" component={RelatorioEmDesenvolvimento} />
+
       <Route path="/pdv/gerenciar" component={GerenciarPDV} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

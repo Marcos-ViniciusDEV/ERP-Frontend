@@ -22,6 +22,7 @@ export function useMenuItems() {
       label: "Cadastros",
       items: [
         { label: "Clientes", path: "/cadastros/clientes" },
+        { label: "Departamentos", path: "/cadastros/departamentos" },
         { label: "Produtos", path: "/estoque/produtos" },
         { label: "Fornecedores", path: "/compras/fornecedores" },
         { label: "Estoques", path: "/estoque/consulta" },
@@ -107,10 +108,6 @@ export function useMenuItems() {
           path: "/relatorios/resumo-lancamento",
         },
         {
-          label: "Resumo Diário Vendas",
-          path: "/relatorios/resumo-diario-vendas",
-        },
-        {
           label: "Resumo Por Produto",
           items: [
             { label: "Resumo Por Produto", path: "/relatorios/resumo-produto" },
@@ -157,6 +154,8 @@ export function useMenuItems() {
       label: "PDV",
       items: [
         { label: "Gerenciar PDV", path: "/pdv/gerenciar" },
+        { label: "Vendas Tempo Real", path: "/relatorios/resumo-diario-vendas" },
+        { label: "Relatório de Sangrias", path: "/relatorios/sangrias" },
       ],
     },
     {
