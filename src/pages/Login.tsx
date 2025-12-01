@@ -105,16 +105,7 @@ export function Login() {
               {loginMutation.isPending ? "Entrando..." : "Entrar"}
             </Button>
 
-            <div className="text-center text-sm">
-              <span>Não tem uma conta? </span>
-              <button
-                type="button"
-                onClick={() => setLocation("/register")}
-                className="text-blue-600 hover:underline"
-              >
-                Registre-se
-              </button>
-            </div>
+
           </form>
         </CardContent>
       </Card>

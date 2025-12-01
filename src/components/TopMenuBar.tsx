@@ -244,21 +244,38 @@ export function TopMenuBar() {
       <div className="bg-blue-600 text-white shadow-md hidden md:block">
         <div className="flex items-center h-10 px-2 gap-1">
           {/* Menus */}
-          {menuItems.map((menu, index) => (
-            <DropdownMenu
-              key={index}
-              open={activeMenu === menu.label}
-              onOpenChange={open => setActiveMenu(open ? menu.label : null)}
-            >
-              <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium hover:bg-blue-700 rounded transition-colors">
-                {menu.label}
-                <ChevronDown className="w-4 h-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                {menu.items && renderMenuItems(menu.items)}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ))}
+          {menuItems.map((menu, index) => {
+            if (!menu.items || menu.items.length === 0) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    if (menu.action) menu.action();
+                    else if (menu.path) setLocation(menu.path);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium hover:bg-blue-700 rounded transition-colors"
+                >
+                  {menu.label}
+                </button>
+              );
+            }
+
+            return (
+              <DropdownMenu
+                key={index}
+                open={activeMenu === menu.label}
+                onOpenChange={open => setActiveMenu(open ? menu.label : null)}
+              >
+                <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium hover:bg-blue-700 rounded transition-colors">
+                  {menu.label}
+                  <ChevronDown className="w-4 h-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  {menu.items && renderMenuItems(menu.items)}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })}
 
           {/* Botão Sair */}
           <button

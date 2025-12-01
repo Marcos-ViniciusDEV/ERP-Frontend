@@ -36,6 +36,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Produtos from "./pages/estoque/Produtos";
 import Clientes from "./pages/cadastros/Clientes";
+import Usuarios from "./pages/cadastros/Usuarios";
 import Departamentos from "./pages/cadastros/Departamentos";
 import Fornecedores from "./pages/compras/Fornecedores";
 import ContasPagar from "./pages/financeiro/ContasPagar";
@@ -51,9 +52,23 @@ import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
 import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
 import RelatorioSangrias from "@/pages/relatorios/RelatorioSangrias";
 import ResumoDiarioVendas from "@/pages/relatorios/ResumoDiarioVendas";
+import RelacaoProdutos from "@/pages/relatorios/RelacaoProdutos";
+import ResumoPorProduto from "@/pages/relatorios/ResumoPorProduto";
+import ResumosMarcasVendas from "@/pages/relatorios/ResumosMarcasVendas";
+import ResumoPorDocumento from "@/pages/relatorios/ResumoPorDocumento";
+import ResumoPorDocumentoCancelamentos from "@/pages/relatorios/ResumoPorDocumentoCancelamentos";
+import ResumoMovimento from "@/pages/relatorios/ResumoMovimento";
+import MovimentoHierarquico from "@/pages/relatorios/MovimentoHierarquico";
+import MesaDeMovimento from "@/pages/relatorios/MesaDeMovimento";
+import ResumoLancamento from "@/pages/relatorios/ResumoLancamento";
+import ResumoFaturamentos from "@/pages/relatorios/ResumoFaturamentos";
+import RelacaoNotasContribuintes from "@/pages/relatorios/RelacaoNotasContribuintes";
+import PosicaoEtiquetasDiario from "@/pages/relatorios/PosicaoEtiquetasDiario";
+import ResumoMovimentoUnidades from "@/pages/relatorios/ResumoMovimentoUnidades";
+import ResumoTipoMovimento from "@/pages/relatorios/ResumoTipoMovimento";
 import RelatorioEmDesenvolvimento from "@/pages/relatorios/RelatorioEmDesenvolvimento";
 import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
+
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
 import { setAuthToken } from "./_core/hooks/useAuth";
@@ -80,10 +95,11 @@ function Router() {
   return (
     <Switch>
       <Route path={"/login"} component={Login} />
-      <Route path={"/register"} component={Register} />
+
       <Route path={"/"} component={Home} />
       {/* Cadastros */}
       <Route path={"/cadastros/clientes"} component={Clientes} />
+      <Route path={"/cadastros/usuarios"} component={Usuarios} />
       <Route path="/cadastros/departamentos" component={Departamentos} />
       <Route path={"/estoque/produtos"} component={Produtos} />
       <Route path={"/compras/fornecedores"} component={Fornecedores} />
@@ -112,20 +128,20 @@ function Router() {
       />
       
       {/* Relatórios em Desenvolvimento */}
-      <Route path="/relatorios/resumo-documento" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/resumo-documento-cancelamentos" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/relacao-produtos" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/resumo-movimento" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/movimento-unidades" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/tipo-movimento" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/marcas-vendas" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/movimento-hierarquico" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/mesa-movimento" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/resumo-lancamento" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/resumo-produto" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/resumo-faturamentos" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/notas-contribuintes" component={RelatorioEmDesenvolvimento} />
-      <Route path="/relatorios/etiquetas-diario" component={RelatorioEmDesenvolvimento} />
+      <Route path="/relatorios/resumo-documento" component={ResumoPorDocumento} />
+      <Route path="/relatorios/resumo-documento-cancelamentos" component={ResumoPorDocumentoCancelamentos} />
+      <Route path="/relatorios/relacao-produtos" component={RelacaoProdutos} />
+      <Route path="/relatorios/resumo-movimento" component={ResumoMovimento} />
+      <Route path="/relatorios/movimento-unidades" component={ResumoMovimentoUnidades} />
+      <Route path="/relatorios/tipo-movimento" component={ResumoTipoMovimento} />
+      <Route path="/relatorios/marcas-vendas" component={ResumosMarcasVendas} />
+      <Route path="/relatorios/movimento-hierarquico" component={MovimentoHierarquico} />
+      <Route path="/relatorios/mesa-movimento" component={MesaDeMovimento} />
+      <Route path="/relatorios/resumo-lancamento" component={ResumoLancamento} />
+      <Route path="/relatorios/resumo-produto" component={ResumoPorProduto} />
+      <Route path="/relatorios/resumo-faturamentos" component={ResumoFaturamentos} />
+      <Route path="/relatorios/notas-contribuintes" component={RelacaoNotasContribuintes} />
+      <Route path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} />
 
       <Route path="/pdv/gerenciar" component={GerenciarPDV} />
       <Route path={"/404"} component={NotFound} />

@@ -4,6 +4,7 @@ export interface MenuItem {
   label: string;
   items?: SubMenuItem[];
   action?: () => void;
+  path?: string;
 }
 
 export interface SubMenuItem {
@@ -19,12 +20,17 @@ export function useMenuItems() {
 
   const menuItems: MenuItem[] = [
     {
+      label: "Dashboard",
+      path: "/",
+    },
+    {
       label: "Cadastros",
       items: [
         { label: "Clientes", path: "/cadastros/clientes" },
         { label: "Departamentos", path: "/cadastros/departamentos" },
         { label: "Produtos", path: "/estoque/produtos" },
         { label: "Fornecedores", path: "/compras/fornecedores" },
+        { label: "Usuários", path: "/cadastros/usuarios" },
         { label: "Estoques", path: "/estoque/consulta" },
       ],
     },
@@ -129,6 +135,13 @@ export function useMenuItems() {
           label: "Posição dos Etiquetas Diário",
           path: "/relatorios/etiquetas-diario",
         },
+        {
+          label: "Relatórios PDV",
+          items: [
+            { label: "Vendas Tempo Real", path: "/relatorios/resumo-diario-vendas" },
+            { label: "Relatório de Sangrias", path: "/relatorios/sangrias" },
+          ]
+        }
       ],
     },
     {
@@ -140,7 +153,7 @@ export function useMenuItems() {
           label: "Relatórios Personalizados",
           path: "/configuracoes/relatorios",
         },
-        { label: "Usuários e Permissões", path: "/configuracoes/usuarios" },
+        { label: "Usuários e Permissões", path: "/cadastros/usuarios" },
       ],
     },
     {
@@ -154,8 +167,6 @@ export function useMenuItems() {
       label: "PDV",
       items: [
         { label: "Gerenciar PDV", path: "/pdv/gerenciar" },
-        { label: "Vendas Tempo Real", path: "/relatorios/resumo-diario-vendas" },
-        { label: "Relatório de Sangrias", path: "/relatorios/sangrias" },
       ],
     },
     {

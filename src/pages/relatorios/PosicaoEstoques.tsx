@@ -187,10 +187,10 @@ export default function PosicaoEstoques() {
           <td>${produto.descricao}</td>
           <td>${produto.marca || "-"}</td>
           <td class="text-right">${produto.estoque}</td>
-          <td class="text-right">R$ ${produto.precoCusto.toFixed(2)}</td>
-          <td class="text-right">R$ ${produto.precoVenda.toFixed(2)}</td>
-          <td class="text-right">R$ ${valorCusto.toFixed(2)}</td>
-          <td class="text-right">R$ ${valorVenda.toFixed(2)}</td>
+          <td class="text-right">R$ ${(produto.precoCusto / 100).toFixed(2)}</td>
+          <td class="text-right">R$ ${(produto.precoVenda / 100).toFixed(2)}</td>
+          <td class="text-right">R$ ${(valorCusto / 100).toFixed(2)}</td>
+          <td class="text-right">R$ ${(valorVenda / 100).toFixed(2)}</td>
         </tr>
       `;
     });
@@ -207,11 +207,11 @@ export default function PosicaoEstoques() {
               </div>
               <div class="total-item">
                 <div class="total-label">Valor Total (Custo)</div>
-                <div class="total-value">R$ ${totalValorCusto.toFixed(2)}</div>
+                <div class="total-value">R$ ${(totalValorCusto / 100).toFixed(2)}</div>
               </div>
               <div class="total-item">
                 <div class="total-label">Valor Total (Venda)</div>
-                <div class="total-value">R$ ${totalValorVenda.toFixed(2)}</div>
+                <div class="total-value">R$ ${(totalValorVenda / 100).toFixed(2)}</div>
               </div>
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function PosicaoEstoques() {
       const valorCusto = produto.estoque * produto.precoCusto;
       const valorVenda = produto.estoque * produto.precoVenda;
 
-      csv += `${produto.codigo};${produto.descricao};${produto.marca || ""};${produto.estoque};${produto.precoCusto.toFixed(2)};${produto.precoVenda.toFixed(2)};${valorCusto.toFixed(2)};${valorVenda.toFixed(2)}\n`;
+      csv += `${produto.codigo};${produto.descricao};${produto.marca || ""};${produto.estoque};${(produto.precoCusto / 100).toFixed(2)};${(produto.precoVenda / 100).toFixed(2)};${(valorCusto / 100).toFixed(2)};${(valorVenda / 100).toFixed(2)}\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -361,7 +361,7 @@ export default function PosicaoEstoques() {
                   Valor Total (Custo)
                 </div>
                 <div className="text-2xl font-bold">
-                  R$ {totalValorCusto.toFixed(2)}
+                  R$ {(totalValorCusto / 100).toFixed(2)}
                 </div>
               </div>
             </CardContent>
@@ -374,7 +374,7 @@ export default function PosicaoEstoques() {
                   Valor Total (Venda)
                 </div>
                 <div className="text-2xl font-bold text-green-600">
-                  R$ {totalValorVenda.toFixed(2)}
+                  R$ {(totalValorVenda / 100).toFixed(2)}
                 </div>
               </div>
             </CardContent>
@@ -423,16 +423,16 @@ export default function PosicaoEstoques() {
                             {produto.estoque}
                           </TableCell>
                           <TableCell className="text-right">
-                            R$ {produto.precoCusto.toFixed(2)}
+                            R$ {(produto.precoCusto / 100).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
-                            R$ {produto.precoVenda.toFixed(2)}
+                            R$ {(produto.precoVenda / 100).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
-                            R$ {valorCusto.toFixed(2)}
+                            R$ {(valorCusto / 100).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right text-green-600 font-medium">
-                            R$ {valorVenda.toFixed(2)}
+                            R$ {(valorVenda / 100).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       );

@@ -15,7 +15,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { Package, ShoppingCart, CreditCard, TrendingUp } from "lucide-react";
+import { Package, ShoppingCart, CreditCard, TrendingUp, DollarSign, Calendar, XCircle, Percent } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -60,15 +60,48 @@ export default function Home() {
   });
 
   const totalProdutos = produtos?.length || 0;
-  const vendasHoje =
-    vendas?.filter((v: any) => {
-      const hoje = new Date().toDateString();
-      return new Date(v.dataVenda).toDateString() === hoje;
-    }).length || 0;
+  
+  const vendasHojeList = vendas?.filter((v: any) => {
+    const hoje = new Date().toDateString();
+    return new Date(v.dataVenda).toDateString() === hoje;
+  }) || [];
+  
+  const vendasHojeQtd = vendasHojeList.length;
+  const vendasHojeValor = vendasHojeList.reduce((acc: number, v: any) => acc + v.valorLiquido, 0);
+
+  const vendasMesList = vendas?.filter((v: any) => {
+    const dataVenda = new Date(v.dataVenda);
+    const hoje = new Date();
+    return dataVenda.getMonth() === hoje.getMonth() && dataVenda.getFullYear() === hoje.getFullYear();
+  }) || [];
+
+  const vendasMesValor = vendasMesList.reduce((acc: number, v: any) => acc + v.valorLiquido, 0);
+
+  const totalCancelamentos = vendas?.filter((v: any) => v.status === "CANCELADA").length || 0;
+
+  const totalDescontos = vendas?.reduce((acc: number, v: any) => acc + v.valorDesconto, 0) || 0;
+
   const contasPendentes =
     contasPagar?.filter((c: any) => c.status === "PENDENTE").length || 0;
   const contasReceberPendentes =
     contasReceber?.filter((c: any) => c.status === "PENDENTE").length || 0;
+
+  // Dados para gráfico de vendas por horário (hoje 06:00 - 22:00)
+  const vendasPorHorario = [];
+  const hojeStr = new Date().toDateString();
+  const vendasHojeFiltradas = vendas?.filter((v: any) => new Date(v.dataVenda).toDateString() === hojeStr) || [];
+  
+  for (let i = 6; i <= 22; i++) {
+    const hora = i.toString().padStart(2, '0') + ":00";
+    const totalHora = vendasHojeFiltradas
+      .filter((v: any) => new Date(v.dataVenda).getHours() === i)
+      .reduce((acc: number, v: any) => acc + v.valorLiquido, 0);
+      
+    vendasPorHorario.push({
+      hora,
+      valor: totalHora / 100
+    });
+  }
 
   // Dados para gráfico de vendas (últimos 7 dias)
   const vendasPorDia = [];
@@ -113,14 +146,59 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Cards de Resumo */}
+        {/* Cards de Resumo - Linha 1 */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Vendas Hoje (Valor)
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ {(vendasHojeValor / 100).toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total vendido hoje
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Vendas Hoje (Qtd)
+              </CardTitle>
+              <ShoppingCart className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{vendasHojeQtd}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vendas realizadas hoje
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Vendas Mês
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ {(vendasMesValor / 100).toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Acumulado do mês
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total de Produtos
               </CardTitle>
-              <Package className="h-4 w-4 text-blue-600" />
+              <Package className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalProdutos}</div>
@@ -129,22 +207,41 @@ export default function Home() {
               </p>
             </CardContent>
           </Card>
+        </div>
 
-          <Card>
+        {/* Cards de Resumo - Linha 2 */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Vendas Hoje
+                Cancelamentos
               </CardTitle>
-              <ShoppingCart className="h-4 w-4 text-green-600" />
+              <XCircle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{vendasHoje}</div>
+              <div className="text-2xl font-bold">{totalCancelamentos}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Vendas realizadas
+                Cupons cancelados
               </p>
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Descontos
+              </CardTitle>
+              <Percent className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ {(totalDescontos / 100).toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Descontos concedidos
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -173,11 +270,36 @@ export default function Home() {
                 Contas pendentes
               </p>
             </CardContent>
-          </Card>
+          </Card> 
+          */}
         </div>
 
         {/* Gráficos */}
         <div className="grid gap-4 md:grid-cols-2">
+          <Card className="col-span-2">
+            <CardHeader>
+              <CardTitle>Vendas por Horário (Hoje)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={vendasPorHorario}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hora" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="valor"
+                    fill="#3b82f6"
+                    name="Vendas (R$)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Vendas dos Últimos 7 Dias</CardTitle>
