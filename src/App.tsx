@@ -73,6 +73,10 @@ import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
 import { setAuthToken } from "./_core/hooks/useAuth";
 import GerenciarPDV from "./pages/pdv/GerenciarPDV";
+import GestaoOfertas from "./pages/GestaoOfertas";
+import GestaoMateriais from "./pages/estoque/GestaoMateriais";
+import GestaoReceitas from "./pages/estoque/GestaoReceitas";
+import LancamentoProducao from "./pages/estoque/LancamentoProducao";
 
 /**
  * Componente de Roteamento
@@ -106,11 +110,15 @@ function Router() {
       <Route path={"/financeiro/pagar"} component={ContasPagar} />
       <Route path="/estoque/entrada" component={EntradaMercadoria} />
       <Route path="/estoque/conferencia" component={ConferenciaMercadoria} />
+      <Route path="/estoque/materiais" component={GestaoMateriais} />
+      <Route path="/estoque/receitas" component={GestaoReceitas} />
+      <Route path="/estoque/producao" component={LancamentoProducao} />
       <Route path={"/estoque/baixas"} component={BaixasManuais} />
       <Route path={"/estoque/inventario"} component={Inventario} />
       <Route path={"/financeiro/receber"} component={ContasReceber} />
       <Route path={"/compras/pedidos"} component={PedidosCompra} />
       <Route path={"/vendas/consultar"} component={ConsultarVendas} />
+      <Route path={"/vendas/ofertas"} component={GestaoOfertas} />
       <Route path={"/financeiro/caixa"} component={MovimentacaoCaixa} />
       <Route path={"/utilitarios/etiquetas"} component={Etiquetas} />
       <Route path="/relatorios/posicao-estoques" component={PosicaoEstoques} />
