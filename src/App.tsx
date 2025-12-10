@@ -77,6 +77,9 @@ import GestaoOfertas from "./pages/GestaoOfertas";
 import GestaoMateriais from "./pages/estoque/GestaoMateriais";
 import GestaoReceitas from "./pages/estoque/GestaoReceitas";
 import LancamentoProducao from "./pages/estoque/LancamentoProducao";
+import GestaoDevolucoes from "./pages/vendas/GestaoDevolucoes";
+import DashboardMetas from "./pages/relatorios/DashboardMetas";
+import CurvaABC from "./pages/relatorios/CurvaABC";
 
 /**
  * Componente de Roteamento
@@ -117,8 +120,10 @@ function Router() {
       <Route path={"/estoque/inventario"} component={Inventario} />
       <Route path={"/financeiro/receber"} component={ContasReceber} />
       <Route path={"/compras/pedidos"} component={PedidosCompra} />
+
       <Route path={"/vendas/consultar"} component={ConsultarVendas} />
       <Route path={"/vendas/ofertas"} component={GestaoOfertas} />
+      <Route path={"/vendas/devolucoes"} component={GestaoDevolucoes} />
       <Route path={"/financeiro/caixa"} component={MovimentacaoCaixa} />
       <Route path={"/utilitarios/etiquetas"} component={Etiquetas} />
       <Route path="/relatorios/posicao-estoques" component={PosicaoEstoques} />
@@ -148,8 +153,11 @@ function Router() {
       <Route path="/relatorios/resumo-lancamento" component={ResumoLancamento} />
       <Route path="/relatorios/resumo-produto" component={ResumoPorProduto} />
       <Route path="/relatorios/resumo-faturamentos" component={ResumoFaturamentos} />
+
       <Route path="/relatorios/notas-contribuintes" component={RelacaoNotasContribuintes} />
       <Route path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} />
+      <Route path="/relatorios/metas" component={DashboardMetas} />
+      <Route path="/relatorios/curva-abc" component={CurvaABC} />
 
       <Route path="/pdv/gerenciar" component={GerenciarPDV} />
       <Route path={"/404"} component={NotFound} />
