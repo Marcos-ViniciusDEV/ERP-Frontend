@@ -43,6 +43,8 @@ export default function Home() {
       const { data } = await api.get("/vendas");
       return data;
     },
+    refetchInterval: 30000,   // atualiza a cada 30 segundos
+    staleTime: 0,             // sempre considera dado desatualizado
   });
   const { data: contasPagar } = useQuery({
     queryKey: ["contasPagar"],
