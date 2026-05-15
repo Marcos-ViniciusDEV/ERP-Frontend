@@ -15,100 +15,197 @@ import {
 
 export function Login() {
   const [, setLocation] = useLocation();
+  const [step, setStep] = useState(1);
+  
+  // Step 1: Empresa
+  const [cnpj, setCnpj] = useState("");
+  const [senhaEmpresa, setSenhaEmpresa] = useState("");
+  const [empresa, setEmpresa] = useState<any>(null);
+
+  // Step 2: Usuário
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
   const [error, setError] = useState("");
+
+  const companyMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await api.post("/auth/validate-company", data);
+      return response.data.empresa;
+    },
+    onSuccess: (empresaData) => {
+      setEmpresa(empresaData);
+      setStep(2);
+      setError("");
+    },
+    onError: (error: any) => {
+      setError(error.response?.data?.error || "Empresa não encontrada ou senha incorreta");
+    },
+  });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: any) => {
-      console.log("[Login] Sending credentials:", credentials);
-      try {
-        const response = await api.post("/auth/login", credentials);
-        console.log("[Login] Response received:", response);
-        console.log("[Login] Response data:", response.data);
-        return response.data;
-      } catch (error: any) {
-        console.error("[Login] Request failed:", error);
-        console.error("[Login] Error response:", error.response);
-        throw error;
-      }
+      const response = await api.post("/auth/login", credentials);
+      return response.data;
     },
     onSuccess: (data) => {
-      console.log("[Login] onSuccess called with data:", data);
-      // Armazenar token no localStorage
       setAuthToken(data.token);
       setLocation("/");
     },
     onError: (error: any) => {
-      console.error("[Login] onError called:", error);
       setError(error.response?.data?.error || "Erro ao fazer login");
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    loginMutation.mutate({ email, password });
+    companyMutation.mutate({ cnpj, senhaAcesso: senhaEmpresa });
+  };
+
+  const handleUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    loginMutation.mutate({ 
+      email, 
+      password, 
+      codigoEmpresa: empresa.codigoAcesso 
+    });
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Entre com suas credenciais</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 px-4">
+      <div className="w-full max-w-md">
+        
+        {/* Logo/Title Area */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
+            <span className="text-white text-3xl font-bold">ERP</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800">Sistema Multi-Empresa</h1>
+          <p className="text-slate-500">Gestão Inteligente para o seu negócio</p>
+        </div>
+
+        <Card className="border-none shadow-2xl overflow-hidden rounded-2xl">
+          <div className="h-2 bg-blue-600" />
+          
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">
+              {step === 1 ? "Acesso à Empresa" : "Acesso do Colaborador"}
+            </CardTitle>
+            <CardDescription>
+              {step === 1 
+                ? "Primeiro, identifique a sua empresa" 
+                : `Bem-vindo à ${empresa?.nomeFantasia || "sua empresa"}`}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded shadow-sm">
                 {error}
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
+            {step === 1 ? (
+              <form onSubmit={handleCompanySubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="cnpj" className="block text-sm font-semibold text-slate-700 mb-1">
+                    🏢 CNPJ da Empresa
+                  </label>
+                  <Input
+                    id="cnpj"
+                    type="text"
+                    value={cnpj}
+                    onChange={e => setCnpj(e.target.value)}
+                    placeholder="00.000.000/0000-00"
+                    required
+                    className="h-11 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium mb-1"
-              >
-                Senha
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
+                <div>
+                  <label htmlFor="senhaEmpresa" className="block text-sm font-semibold text-slate-700 mb-1">
+                    🔑 Senha de Acesso (Empresa)
+                  </label>
+                  <Input
+                    id="senhaEmpresa"
+                    type="password"
+                    value={senhaEmpresa}
+                    onChange={e => setSenhaEmpresa(e.target.value)}
+                    placeholder="Sua senha de acesso"
+                    required
+                    className="h-11 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? "Entrando..." : "Entrar"}
-            </Button>
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 transition-all font-semibold"
+                  disabled={companyMutation.isPending}
+                >
+                  {companyMutation.isPending ? "Validando..." : "Continuar"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleUserSubmit} className="space-y-4">
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg mb-4 text-sm text-blue-700">
+                  <span className="font-bold">🏢 Empresa:</span> {empresa?.nomeFantasia}
+                  <button 
+                    type="button"
+                    onClick={() => setStep(1)} 
+                    className="ml-auto underline hover:text-blue-900"
+                  >
+                    Trocar
+                  </button>
+                </div>
 
+                <div>
+                  <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-1">
+                    📧 Email do Colaborador
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                    className="h-11 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-          </form>
-        </CardContent>
-      </Card>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-1">
+                    🔒 Senha Pessoal
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="h-11 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 transition-all font-semibold"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Entrando..." : "Entrar no Sistema"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        <p className="text-center mt-8 text-slate-500 text-sm">
+          &copy; {new Date().getFullYear()} ERP SaaS. Todos os direitos reservados.
+        </p>
+      </div>
     </div>
   );
 }
