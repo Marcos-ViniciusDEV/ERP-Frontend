@@ -119,6 +119,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  h1, h2, h3 {
+    font-family: 'Sora', system-ui, sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -138,7 +142,6 @@
    * Custom container utility that centers content and adds responsive padding.
    *
    * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
    * - Add responsive horizontal padding
    * - Set max-width for large screens
    *

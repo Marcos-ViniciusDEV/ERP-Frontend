@@ -1,30 +1,8 @@
 /**
- * App - Aplicação Principal do ERP Minimalista
+ * App - Aplicação Principal do Trakto ERP
  *
  * Componente raiz que configura roteamento e providers globais.
  * Define todas as rotas do sistema e aplica tema/configurações globais.
- *
- * Estrutura:
- * - ErrorBoundary: Captura erros React
- * - ThemeProvider: Gerenciamento de tema
- * - TooltipProvider: Tooltips globais
- * - Toaster: Notificações toast
- * - Router: Roteamento de páginas
- *
- * Rotas Públicas:
- * - /login - Página de login
- * - /register - Registro de usuário
- *
- * Rotas Protegidas:
- * - / - Dashboard
- * - /estoque/* - Gestão de estoque
- * - /vendas/* - Gestão de vendas
- * - /compras/* - Gestão de compras
- * - /financeiro/* - Gestão financeira
- * - /relatorios/* - Relatórios
- * - /utilitarios/* - Utilitários
- *
- * @component
  */
 
 import { Toaster } from "@/components/ui/sonner";
@@ -48,26 +26,29 @@ import PedidosCompra from "./pages/compras/PedidosCompra";
 import ConsultarVendas from "./pages/vendas/ConsultarVendas";
 import MovimentacaoCaixa from "./pages/vendas/MovimentacaoCaixa";
 import Etiquetas from "./pages/Etiquetas";
-import PosicaoEstoques from "@/pages/relatorios/PosicaoEstoques";
-import MovimentoVendedores from "@/pages/relatorios/MovimentoVendedores";
-import RelatorioSangrias from "@/pages/relatorios/RelatorioSangrias";
-import ResumoDiarioVendas from "@/pages/relatorios/ResumoDiarioVendas";
-import RelacaoProdutos from "@/pages/relatorios/RelacaoProdutos";
-import ResumoPorProduto from "@/pages/relatorios/ResumoPorProduto";
-import ResumosMarcasVendas from "@/pages/relatorios/ResumosMarcasVendas";
-import ResumoPorDocumento from "@/pages/relatorios/ResumoPorDocumento";
-import ResumoPorDocumentoCancelamentos from "@/pages/relatorios/ResumoPorDocumentoCancelamentos";
-import ResumoMovimento from "@/pages/relatorios/ResumoMovimento";
-import MovimentoHierarquico from "@/pages/relatorios/MovimentoHierarquico";
-import MesaDeMovimento from "@/pages/relatorios/MesaDeMovimento";
-import ResumoLancamento from "@/pages/relatorios/ResumoLancamento";
-import ResumoFaturamentos from "@/pages/relatorios/ResumoFaturamentos";
-import RelacaoNotasContribuintes from "@/pages/relatorios/RelacaoNotasContribuintes";
-import PosicaoEtiquetasDiario from "@/pages/relatorios/PosicaoEtiquetasDiario";
-import ResumoMovimentoUnidades from "@/pages/relatorios/ResumoMovimentoUnidades";
-import ResumoTipoMovimento from "@/pages/relatorios/ResumoTipoMovimento";
-import RelatorioEmDesenvolvimento from "@/pages/relatorios/RelatorioEmDesenvolvimento";
+import PosicaoEstoques from "./pages/relatorios/PosicaoEstoques";
+import MovimentoVendedores from "./pages/relatorios/MovimentoVendedores";
+import RelatorioSangrias from "./pages/relatorios/RelatorioSangrias";
+import ResumoDiarioVendas from "./pages/relatorios/ResumoDiarioVendas";
+import RelacaoProdutos from "./pages/relatorios/RelacaoProdutos";
+import ResumoPorProduto from "./pages/relatorios/ResumoPorProduto";
+import ResumosMarcasVendas from "./pages/relatorios/ResumosMarcasVendas";
+import ResumoPorDocumento from "./pages/relatorios/ResumoPorDocumento";
+import ResumoPorDocumentoCancelamentos from "./pages/relatorios/ResumoPorDocumentoCancelamentos";
+import ResumoMovimento from "./pages/relatorios/ResumoMovimento";
+import MovimentoHierarquico from "./pages/relatorios/MovimentoHierarquico";
+import MesaDeMovimento from "./pages/relatorios/MesaDeMovimento";
+import ResumoLancamento from "./pages/relatorios/ResumoLancamento";
+import ResumoFaturamentos from "./pages/relatorios/ResumoFaturamentos";
+import RelacaoNotasContribuintes from "./pages/relatorios/RelacaoNotasContribuintes";
+import PosicaoEtiquetasDiario from "./pages/relatorios/PosicaoEtiquetasDiario";
+import ResumoMovimentoUnidades from "./pages/relatorios/ResumoMovimentoUnidades";
+import ResumoTipoMovimento from "./pages/relatorios/ResumoTipoMovimento";
+import RelatorioEmDesenvolvimento from "./pages/relatorios/RelatorioEmDesenvolvimento";
 import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { LandingPage } from "./pages/LandingPage";
+import { Onboarding } from "./pages/Onboarding";
 
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
@@ -98,12 +79,17 @@ function Router() {
     }
   }, []);
 
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      {/* Rotas Públicas */}
+      <Route path={"/"} component={LandingPage} />
       <Route path={"/login"} component={Login} />
+      <Route path={"/register"} component={Register} />
+      <Route path={"/onboarding"} component={Onboarding} />
 
-      <Route path={"/"} component={Home} />
+      {/* Rotas Protegidas (exigem autenticação) */}
+      <Route path={"/dashboard"} component={Home} />
+
       {/* Cadastros */}
       <Route path={"/cadastros/clientes"} component={Clientes} />
       <Route path={"/cadastros/usuarios"} component={Usuarios} />
@@ -113,9 +99,9 @@ function Router() {
       <Route path={"/financeiro/pagar"} component={ContasPagar} />
       <Route path="/estoque/entrada" component={EntradaMercadoria} />
       <Route path="/estoque/conferencia" component={ConferenciaMercadoria} />
-      <Route path="/estoque/materiais" component={GestaoMateriais} />
-      <Route path="/estoque/receitas" component={GestaoReceitas} />
-      <Route path="/estoque/producao" component={LancamentoProducao} />
+      <Route path={"/estoque/materiais"} component={GestaoMateriais} />
+      <Route path={"/estoque/receitas"} component={GestaoReceitas} />
+      <Route path={"/estoque/producao"} component={LancamentoProducao} />
       <Route path={"/estoque/baixas"} component={BaixasManuais} />
       <Route path={"/estoque/inventario"} component={Inventario} />
       <Route path={"/financeiro/receber"} component={ContasReceber} />
@@ -139,7 +125,7 @@ function Router() {
         path="/relatorios/resumo-diario-vendas"
         component={ResumoDiarioVendas}
       />
-      
+
       {/* Relatórios em Desenvolvimento */}
       <Route path="/relatorios/resumo-documento" component={ResumoPorDocumento} />
       <Route path="/relatorios/resumo-documento-cancelamentos" component={ResumoPorDocumentoCancelamentos} />
@@ -167,18 +153,10 @@ function Router() {
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />

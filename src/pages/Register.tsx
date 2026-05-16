@@ -29,7 +29,7 @@ export function Register() {
     onSuccess: (data) => {
       // Armazenar token no localStorage
       setAuthToken(data.token);
-      setLocation("/");
+      setLocation("/onboarding"); // Redirect to onboarding after registration
     },
     onError: (error: any) => {
       setError(error.response?.data?.error || "Erro ao registrar");
@@ -45,8 +45,8 @@ export function Register() {
       return;
     }
 
-    if (password.length < 4) {
-      setError("A senha deve ter pelo menos 4 caracteres");
+    if (password.length < 8) {
+      setError("A senha deve ter pelo menos 8 caracteres");
       return;
     }
 
@@ -54,105 +54,100 @@ export function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Registro</CardTitle>
-          <CardDescription>Crie uma nova conta</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center py-12 bg-gray-50">
+      <div className="max-w-xl w-full px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="p-8">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Crie sua conta
+              </h1>
+              <p className="text-gray-600">
+                Comece seu trial gratuito de 7 dias sem cartão de crédito
+              </p>
+            </div>
+
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded">
-                {error}
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">
-                Nome
-              </label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Seu nome completo"
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Nome completo
+                </label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Digite seu nome completo"
+                  required
+                />
+              </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
+              <div className="space-y-3">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  E-mail profissional
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@empresa.com"
+                  required
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium mb-1"
+              <div className="space-y-3">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Senha
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirmar senha
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3"
+                disabled={false}
               >
-                Senha
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={4}
-              />
-            </div>
+                Criar conta gratuita
+              </Button>
+            </form>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium mb-1"
-              >
-                Confirmar Senha
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={4}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={registerMutation.isPending}
-            >
-              {registerMutation.isPending ? "Registrando..." : "Registrar"}
-            </Button>
-
-            <div className="text-center text-sm">
-              <span>Já tem uma conta? </span>
-              <button
-                type="button"
-                onClick={() => setLocation("/login")}
-                className="text-blue-600 hover:underline"
-              >
+            <div className="mt-6 text-center text-sm text-gray-500">
+              Já tem uma conta?{" "}
+              <a href="/login" className="text-blue-600 hover:text-blue-800 underline">
                 Faça login
-              </button>
+              </a>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

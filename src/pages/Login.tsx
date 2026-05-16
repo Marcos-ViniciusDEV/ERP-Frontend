@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { setAuthToken } from "@/_core/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import {
 export function Login() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
-  
+
   // Step 1: Empresa
   const [cnpj, setCnpj] = useState("");
   const [senhaEmpresa, setSenhaEmpresa] = useState("");
@@ -25,8 +25,21 @@ export function Login() {
   // Step 2: Usuário
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  
+
   const [error, setError] = useState("");
+
+  // Se vier da landing page com empresa já validada, pular para step 2
+  useEffect(() => {
+    const stored = sessionStorage.getItem("erp_empresa");
+    if (stored) {
+      try {
+        const empresaData = JSON.parse(stored);
+        setEmpresa(empresaData);
+        setStep(2);
+        sessionStorage.removeItem("erp_empresa");
+      } catch (_) {}
+    }
+  }, []);
 
   const companyMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -50,7 +63,7 @@ export function Login() {
     },
     onSuccess: (data) => {
       setAuthToken(data.token);
-      setLocation("/");
+      setLocation("/onboarding"); // Redirect to onboarding after login
     },
     onError: (error: any) => {
       setError(error.response?.data?.error || "Erro ao fazer login");
@@ -69,14 +82,14 @@ export function Login() {
     loginMutation.mutate({
       identifier,
       password,
-      codigoEmpresa: empresa.codigoAcesso
+      codigoEmpresa: empresa?.codigoAcesso
     });
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 px-4">
       <div className="w-full max-w-md">
-        
+
         {/* Logo/Title Area */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
@@ -88,14 +101,14 @@ export function Login() {
 
         <Card className="border-none shadow-2xl overflow-hidden rounded-2xl">
           <div className="h-2 bg-blue-600" />
-          
+
           <CardHeader className="pb-2">
             <CardTitle className="text-xl">
               {step === 1 ? "Acesso à Empresa" : "Acesso do Colaborador"}
             </CardTitle>
             <CardDescription>
-              {step === 1 
-                ? "Primeiro, identifique a sua empresa" 
+              {step === 1
+                ? "Primeiro, identifique a sua empresa"
                 : `Bem-vindo à ${empresa?.nomeFantasia || "sua empresa"}`}
             </CardDescription>
           </CardHeader>
@@ -151,9 +164,9 @@ export function Login() {
               <form onSubmit={handleUserSubmit} className="space-y-4">
                 <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg mb-4 text-sm text-blue-700">
                   <span className="font-bold">🏢 Empresa:</span> {empresa?.nomeFantasia}
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => setStep(1)} 
+                    onClick={() => setStep(1)}
                     className="ml-auto underline hover:text-blue-900"
                   >
                     Trocar
@@ -203,7 +216,7 @@ export function Login() {
         </Card>
 
         <p className="text-center mt-8 text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} ERP SaaS. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} Trakto ERP. Todos os direitos reservados.
         </p>
       </div>
     </div>
