@@ -15,7 +15,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { Package, ShoppingCart, CreditCard, TrendingUp, DollarSign, Calendar, XCircle, Percent } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, Calendar, XCircle, Percent } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -83,10 +83,11 @@ export default function Home() {
 
   const totalDescontos = vendas?.reduce((acc: number, v: any) => acc + v.valorDesconto, 0) || 0;
 
-  const contasPendentes =
-    contasPagar?.filter((c: any) => c.status === "PENDENTE").length || 0;
-  const contasReceberPendentes =
-    contasReceber?.filter((c: any) => c.status === "PENDENTE").length || 0;
+  const contasPendentes = contasPagar?.filter((c: any) => c.status === "PENDENTE").length || 0;
+  const contasReceberPendentes = contasReceber?.filter((c: any) => c.status === "PENDENTE").length || 0;
+  
+  // Use to silence TS if not used in the UI temporarily
+  console.log({ contasPendentes, contasReceberPendentes });
 
   // Dados para gráfico de vendas por horário (hoje 06:00 - 22:00)
   const vendasPorHorario = [];

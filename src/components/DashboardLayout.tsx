@@ -61,6 +61,7 @@ import {
   Package,
   X,
   ChevronRight,
+  User,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -301,6 +302,12 @@ function DashboardLayoutContent({
 
       <SidebarInset>
         <TopMenuBar />
+        {user?.empresa?.plano === "TRIAL" && (
+          <div className="bg-amber-400 text-amber-950 px-4 py-2.5 text-center text-sm font-bold flex flex-col sm:flex-row justify-center items-center gap-2 relative z-[60] shadow-sm">
+            <span>⚠️ Acesso trial! Comece agora no plano Starter ou Profissional.</span>
+            <Button variant="link" className="text-amber-950 underline font-black px-0 h-auto hover:text-amber-800" onClick={() => window.location.href = "/profile"}>Ver Planos →</Button>
+          </div>
+        )}
         {isMobile && (
           <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
             <div className="flex items-center gap-2">
@@ -563,6 +570,13 @@ function SidebarFooterContent({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem
+            onClick={() => window.location.href = "/profile"}
+            className="cursor-pointer"
+          >
+            <User className="mr-2 h-4 w-4" />
+            <span>Meu Perfil</span>
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={logout}
             className="cursor-pointer text-destructive focus:text-destructive"

@@ -1,31 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { setAuthToken } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
-  AlertTriangle,
   CheckCheck,
   Check,
-  Clock,
   Zap,
-  LayoutDashboard,
-  Settings,
-  Users,
   ShieldCheck,
-  MessageSquare,
-  Bot,
-  TrendingUp,
-  Mail,
-  Phone,
-  Globe,
-  Instagram,
-  Github,
-  Twitter,
-  Linkedin,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -34,9 +18,9 @@ import {
   Box,
   Banknote,
   FileText,
-  UserCircle,
   Menu,
-  X
+  X,
+  Users
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -142,14 +126,23 @@ export function LandingPage() {
 
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await api.post("/empresas/trial", {
+        name: formState.name,
+        companyName: formState.companyName,
+        cnpj: formState.cnpj,
+        email: formState.email,
+        password: formState.password,
+      });
+      
+      localStorage.setItem("erp_token", response.data.token);
       setSuccessMessage("Conta criada com sucesso! Redirecionando...");
-      setIsSubmitting(false);
+      
       setTimeout(() => {
-        window.location.href = "/onboarding";
+        window.location.href = "/dashboard";
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       setIsSubmitting(false);
+      setFormErrors(prev => ({ ...prev, email: err.response?.data?.error || "Erro ao criar conta" }));
       console.error("Registration failed:", err);
     }
   };
@@ -158,70 +151,11 @@ export function LandingPage() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  if (isAuthenticated && user) {
-    const trialStart = new Date();
-    const trialEnd = new Date(trialStart);
-    trialEnd.setDate(trialEnd.getDate() + 7);
-    const now = new Date();
-    const diffTime = trialEnd.getTime() - now.getTime();
-    const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    const progressPercentage = Math.min(100, ((7 - daysRemaining) / 7) * 100);
-
-    return (
-      <div className="min-h-screen flex flex-col font-sans bg-gray-50">
-        <header className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">T</div>
-              <h1 className="text-xl font-bold text-gray-900">Trakto ERP</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                {user?.name?.[0]?.toUpperCase()}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">{user?.name || "Usuário"}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => window.location.href = "/login"}>Sair</Button>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 max-w-2xl mx-auto py-12 px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4 text-gradient bg-clip-text">Bem-vindo, {user?.name}!</h1>
-            <p className="text-lg text-gray-600">Seu trial gratuito de 7 dias está ativo.</p>
-          </div>
-          <Card className="shadow-xl border-0">
-            <CardContent className="p-8">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-2xl">📅</div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">Status da Conta</h2>
-                  <p className="text-sm text-gray-500">Expira em {trialEnd.toLocaleDateString()}</p>
-                </div>
-              </div>
-              <div className="text-center py-8">
-                <span className="text-6xl font-bold text-blue-600">{daysRemaining}</span>
-                <p className="text-gray-500 mt-2 font-medium uppercase tracking-widest text-xs">Dias Restantes</p>
-              </div>
-              <div className="mt-6 space-y-2">
-                <div className="flex justify-between text-sm font-medium text-gray-700">
-                  <span>Uso do Trial</span>
-                  <span>{7 - daysRemaining}/7 dias</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full transition-all duration-700" style={{ width: `${progressPercentage}%` }} />
-                </div>
-              </div>
-              <Button className="w-full mt-10 h-14 text-lg bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200">Fazer Upgrade Agora</Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setLocation("/dashboard");
+    }
+  }, [isAuthenticated, user, setLocation]);
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white scroll-smooth">

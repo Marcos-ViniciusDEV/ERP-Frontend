@@ -42,7 +42,7 @@ const userSchema = z.object({
   password: z.string().optional(),
   role: z.enum(["user", "admin", "pdv_operator"]),
   supervisorPassword: z.string().optional(),
-}).refine((data) => {
+}).refine(() => {
   // Password is required for new users (we'll handle this logic in the component or separate schema if needed, 
   // but for now let's make it optional in schema and check in submit if it's creation)
   return true;

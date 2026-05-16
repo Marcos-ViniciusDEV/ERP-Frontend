@@ -44,11 +44,12 @@ import RelacaoNotasContribuintes from "./pages/relatorios/RelacaoNotasContribuin
 import PosicaoEtiquetasDiario from "./pages/relatorios/PosicaoEtiquetasDiario";
 import ResumoMovimentoUnidades from "./pages/relatorios/ResumoMovimentoUnidades";
 import ResumoTipoMovimento from "./pages/relatorios/ResumoTipoMovimento";
-import RelatorioEmDesenvolvimento from "./pages/relatorios/RelatorioEmDesenvolvimento";
+
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { LandingPage } from "./pages/LandingPage";
 import { Onboarding } from "./pages/Onboarding";
+import { Profile } from "./pages/Profile";
 
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
@@ -89,6 +90,7 @@ function Router() {
 
       {/* Rotas Protegidas (exigem autenticação) */}
       <Route path={"/dashboard"} component={Home} />
+      <Route path={"/profile"} component={Profile} />
 
       {/* Cadastros */}
       <Route path={"/cadastros/clientes"} component={Clientes} />

@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Printer, Download, Search } from "lucide-react";
+import { Printer, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ResumoMovimento() {

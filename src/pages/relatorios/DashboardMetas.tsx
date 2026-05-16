@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
-import { Target, TrendingUp, DollarSign, Calendar } from 'lucide-react';
+import { Target, TrendingUp, Calendar } from 'lucide-react';
 
 interface GoalPerformance {
   month: number;
@@ -13,7 +13,7 @@ interface GoalPerformance {
 }
 
 export default function DashboardMetas() {
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [performance, setPerformance] = useState<GoalPerformance | null>(null);
   const [targetAmount, setTargetAmount] = useState('');
   const [month, setMonth] = useState(new Date().getMonth() + 1);

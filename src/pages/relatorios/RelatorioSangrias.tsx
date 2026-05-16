@@ -24,7 +24,6 @@ export default function RelatorioSangrias() {
     data: response,
     isLoading,
     refetch,
-    isFetched,
   } = useQuery({
     queryKey: ["sangrias", dataInicio, dataFim],
     queryFn: async () => {

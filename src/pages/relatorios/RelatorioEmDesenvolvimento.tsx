@@ -1,5 +1,4 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Construction } from "lucide-react";
 
 export default function RelatorioEmDesenvolvimento() {

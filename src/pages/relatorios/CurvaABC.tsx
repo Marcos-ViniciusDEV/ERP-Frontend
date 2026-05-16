@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
-import { BarChart, Filter, Download } from 'lucide-react';
+import { BarChart, Filter } from 'lucide-react';
 
 interface ABCItem {
   produtoId: number;
@@ -14,7 +14,7 @@ interface ABCItem {
 }
 
 export default function CurvaABC() {
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [data, setData] = useState<ABCItem[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
