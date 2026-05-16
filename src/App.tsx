@@ -62,6 +62,8 @@ import LancamentoProducao from "./pages/estoque/LancamentoProducao";
 import GestaoDevolucoes from "./pages/vendas/GestaoDevolucoes";
 import DashboardMetas from "./pages/relatorios/DashboardMetas";
 import CurvaABC from "./pages/relatorios/CurvaABC";
+import SupermercadoFeatures from "./pages/SupermercadoFeatures";
+import AuthPage from "./pages/AuthPage";
 
 /**
  * Componente de Roteamento
@@ -85,7 +87,8 @@ function Router() {
       {/* Rotas Públicas */}
       <Route path={"/"} component={LandingPage} />
       <Route path={"/login"} component={Login} />
-      <Route path={"/register"} component={Register} />
+      <Route path={"/register"} component={AuthPage} />
+      <Route path={"/auth"} component={AuthPage} />
       <Route path={"/onboarding"} component={Onboarding} />
 
       {/* Rotas Protegidas (exigem autenticação) */}
@@ -146,7 +149,7 @@ function Router() {
       <Route path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} />
       <Route path="/relatorios/metas" component={DashboardMetas} />
       <Route path="/relatorios/curva-abc" component={CurvaABC} />
-
+      <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
       <Route path="/pdv/gerenciar" component={GerenciarPDV} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
