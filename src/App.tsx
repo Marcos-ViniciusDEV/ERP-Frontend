@@ -55,6 +55,7 @@ import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
 import { setAuthToken } from "./_core/hooks/useAuth";
 import GerenciarPDV from "./pages/pdv/GerenciarPDV";
+import PdvOnline from "./pages/pdv/PdvOnline";
 import GestaoOfertas from "./pages/GestaoOfertas";
 import GestaoMateriais from "./pages/estoque/GestaoMateriais";
 import GestaoReceitas from "./pages/estoque/GestaoReceitas";
@@ -151,6 +152,7 @@ function Router() {
       <Route path="/relatorios/curva-abc" component={CurvaABC} />
       <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
       <Route path="/pdv/gerenciar" component={GerenciarPDV} />
+      <Route path="/pdv/online" component={PdvOnline} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

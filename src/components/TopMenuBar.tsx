@@ -241,7 +241,7 @@ export function TopMenuBar() {
 
   return (
     <>
-      <div className="bg-blue-600 text-white shadow-md hidden md:block">
+      <div className="bg-blue-600 text-white shadow-md hidden md:block sticky top-0 z-50">
         <div className="flex items-center h-10 px-2 gap-1">
           {/* Menus */}
           {menuItems.map((menu, index) => {

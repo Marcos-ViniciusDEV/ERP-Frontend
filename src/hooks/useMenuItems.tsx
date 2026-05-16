@@ -167,6 +167,7 @@ export function useMenuItems() {
       label: "PDV",
       items: [
         { label: "Gerenciar PDV", path: "/pdv/gerenciar" },
+        { label: "PDV Online", path: "/pdv/online" },
       ],
     },
     {

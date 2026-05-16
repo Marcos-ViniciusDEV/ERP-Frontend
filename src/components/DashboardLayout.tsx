@@ -188,6 +188,16 @@ function DashboardLayoutContent({
   const activeMenuItem = shortcuts.find(item => item.path === location);
   const isMobile = useIsMobile();
 
+  const isTrial = user?.empresa?.plano === "TRIAL" || user?.empresa?.plano === "BASICO";
+  let diasRestantes = 0;
+  if (isTrial && user?.empresa?.createdAt) {
+    const dataCriacao = new Date(user.empresa.createdAt);
+    const dataAtual = new Date();
+    const diferencaTempo = dataAtual.getTime() - dataCriacao.getTime();
+    const diferencaDias = Math.floor(diferencaTempo / (1000 * 3600 * 24));
+    diasRestantes = Math.max(0, 7 - diferencaDias);
+  }
+
   // Atalho para abrir/fechar sidebar com Ctrl+B, tecla ' ou ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -302,10 +312,10 @@ function DashboardLayoutContent({
 
       <SidebarInset>
         <TopMenuBar />
-        {user?.empresa?.plano === "TRIAL" && (
-          <div className="bg-amber-400 text-amber-950 px-4 py-2.5 text-center text-sm font-bold flex flex-col sm:flex-row justify-center items-center gap-2 relative z-[60] shadow-sm">
-            <span>⚠️ Acesso trial! Comece agora no plano Starter ou Profissional.</span>
-            <Button variant="link" className="text-amber-950 underline font-black px-0 h-auto hover:text-amber-800" onClick={() => window.location.href = "/profile"}>Ver Planos →</Button>
+        {isTrial && (
+          <div className="bg-amber-400 text-amber-950 px-4 py-2.5 text-center text-sm font-bold flex flex-col sm:flex-row justify-center items-center gap-2 relative z-30 shadow-sm">
+            <span>⚠️ Período de teste! Você tem {diasRestantes} {diasRestantes === 1 ? 'dia restante' : 'dias restantes'} no plano básico.</span>
+            <Button variant="link" className="text-amber-950 underline font-black px-0 h-auto hover:text-amber-800" onClick={() => window.location.href = "/profile"}>Fazer Upgrade →</Button>
           </div>
         )}
         {isMobile && (

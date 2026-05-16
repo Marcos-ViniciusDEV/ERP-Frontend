@@ -155,13 +155,13 @@ export function Profile() {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (user?.empresa?.plano === "STARTER" && users.length >= 1) {
-      return toast.error("Limite de usuários atingido no plano Starter.");
+    if ((user?.empresa?.plano === "STARTER" || user?.empresa?.plano === "BASICO") && users.length >= 1) {
+      return toast.error("Limite de usuários atingido no plano atual.");
     }
     createUserMutation.mutate();
   };
 
-  const isStarterBlocked = user?.empresa?.plano === "STARTER" && users.length >= 1;
+  const isStarterBlocked = (user?.empresa?.plano === "STARTER" || user?.empresa?.plano === "BASICO") && users.length >= 1;
 
   return (
     <DashboardLayout>
@@ -312,18 +312,20 @@ export function Profile() {
                   <div className="border rounded-xl p-4 text-center bg-white shadow-sm">
                     <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Usuários</h4>
                     <p className="text-2xl font-bold">
-                      {user?.empresa?.plano === "STARTER" ? "1 Limite" : "Ilimitado"}
+                      {user?.empresa?.plano === "STARTER" || user?.empresa?.plano === "BASICO" ? "1 Limite" : "Ilimitado"}
                     </p>
                   </div>
                   <div className="border rounded-xl p-4 text-center bg-white shadow-sm">
                     <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Suporte</h4>
-                    <p className="text-2xl font-bold">
-                      {user?.empresa?.plano === "ENTERPRISE" ? "24/7 VIP" : "Horário Comercial"}
+                    <p className="text-lg font-bold flex items-center justify-center h-[32px]">
+                      {user?.empresa?.plano === "ENTERPRISE" ? "24/7 VIP" : user?.empresa?.plano === "BASICO" ? "8h às 18h (Seg-Sex)" : "Horário Comercial"}
                     </p>
                   </div>
                   <div className="border rounded-xl p-4 text-center bg-white shadow-sm">
                     <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">PDVs Ativos</h4>
-                    <p className="text-2xl font-bold">Ilimitado</p>
+                    <p className="text-lg font-bold flex items-center justify-center h-[32px]">
+                      {user?.empresa?.plano === "BASICO" ? "Somente Online" : "Ilimitado"}
+                    </p>
                   </div>
                 </div>
 
@@ -348,7 +350,7 @@ export function Profile() {
                 {isStarterBlocked && (
                   <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center">
                     <span className="text-xl mr-3">⚠️</span> 
-                    Seu plano atual (STARTER) possui limite de 1 usuário. Você atingiu o limite. Faça upgrade para adicionar mais.
+                    Seu plano atual possui limite de 1 usuário. Você atingiu o limite. Faça upgrade para adicionar mais.
                   </div>
                 )}
                 
