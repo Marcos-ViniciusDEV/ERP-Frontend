@@ -23,7 +23,7 @@ export function Login() {
   const [empresa, setEmpresa] = useState<any>(null);
 
   // Step 2: Usuário
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   
   const [error, setError] = useState("");
@@ -66,10 +66,10 @@ export function Login() {
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    loginMutation.mutate({ 
-      email, 
-      password, 
-      codigoEmpresa: empresa.codigoAcesso 
+    loginMutation.mutate({
+      identifier,
+      password,
+      codigoEmpresa: empresa.codigoAcesso
     });
   };
 
@@ -161,15 +161,15 @@ export function Login() {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-1">
-                    📧 Email do Colaborador
+                  <label htmlFor="identifier" className="block text-sm font-semibold text-slate-700 mb-1">
+                    🆔 ID ou Email do Colaborador
                   </label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
+                    id="identifier"
+                    type="text"
+                    value={identifier}
+                    onChange={e => setIdentifier(e.target.value)}
+                    placeholder="Digite seu ID ou email"
                     required
                     className="h-11 focus:ring-2 focus:ring-blue-500"
                   />
