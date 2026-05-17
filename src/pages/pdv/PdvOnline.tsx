@@ -341,7 +341,7 @@ export default function PdvOnline() {
 
 // Payment Modal Sub-Component
 function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
-  const { items, getNetTotal, getDiscount } = usePdvOnlineStore();
+  const { items, getNetTotal, getDiscount, getTotal } = usePdvOnlineStore();
   const [payments, setPayments] = useState<{method:string, amount:number}[]>([]);
   const [selectedMethod, setSelectedMethod] = useState("dinheiro");
   const [inputVal, setInputVal] = useState("");
@@ -390,27 +390,85 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
           desconto: 0
         }))
       };
-      await api.post("/vendas", payload);
+      const res = await api.post("/vendas", payload);
+      const sale = res.data;
       toast.success("Venda finalizada com sucesso!");
       
-      // Print Coupon (simplified)
-      const w = window.open("", "_blank", "width=400,height=600");
+      // Print Coupon (matching desktop PDV style and structure)
+      const width = 400;
+      const height = 700;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      const w = window.open("", "_blank", `width=${width},height=${height},top=${top},left=${left}`);
+      
       if(w) {
-        w.document.write(`
-          <html><body style="font-family: monospace; text-align: center;">
-            <h2>MERCADO EXEMPLO</h2>
-            <hr/>
-            <div style="text-align: left;">
-              ${items.map(i => `<div>${i.quantity}x ${i.name} - R$ ${(i.price*i.quantity/100).toFixed(2)}</div>`).join('')}
-            </div>
-            <hr/>
-            <h3>TOTAL: R$ ${(getNetTotal()/100).toFixed(2)}</h3>
-            <h4>TROCO: R$ ${(change/100).toFixed(2)}</h4>
-            <hr/>
-            <p>Obrigado pela preferência!</p>
-            <script>window.print();</script>
-          </body></html>
-        `);
+        const html = `
+          <html>
+            <head>
+              <title>Cupom Fiscal</title>
+              <style>
+                body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .bold { font-weight: bold; }
+                .divider { border-top: 1px dashed #000; margin: 5px 0; }
+                table { width: 100%; border-collapse: collapse; }
+                td { vertical-align: top; padding: 2px 0; }
+              </style>
+            </head>
+            <body>
+              <div class="text-center bold">MERCADO EXEMPLO LTDA</div>
+              <div class="text-center">CNPJ: 12.345.678/0001-90</div>
+              
+              <div class="divider"></div>
+              
+              <div class="text-center bold">CUPOM FISCAL ELETRÔNICO</div>
+              <div class="text-center">CCF: ${sale.ccf || "000000"} COO: ${sale.coo || "000000"}</div>
+              
+              <div class="divider"></div>
+              
+              <table>
+                ${items.map((item, index) => `
+                  <tr>
+                    <td colspan="4">${(index + 1).toString().padStart(3, "0")} ${item.id} ${item.name}</td>
+                  </tr>
+                  <tr>
+                    <td>${item.quantity} UN</td>
+                    <td class="text-right">${(item.price / 100).toFixed(2)}</td>
+                    <td class="text-right">${(item.price * item.quantity / 100).toFixed(2)}</td>
+                  </tr>
+                `).join("")}
+              </table>
+              
+              <div class="divider"></div>
+              
+              <div class="text-right">SUBTOTAL R$ ${(getTotal() / 100).toFixed(2)}</div>
+              ${getDiscount() > 0 ? `<div class="text-right">DESCONTO R$ -${(getDiscount() / 100).toFixed(2)}</div>` : ''}
+              <div class="text-right bold">TOTAL R$ ${(getNetTotal() / 100).toFixed(2)}</div>
+              
+              <div class="divider"></div>
+              
+              ${payments.map(p => {
+                const methodLabel = p.method === "dinheiro" ? "DINHEIRO" 
+                                  : p.method === "cartao" ? "CARTÃO"
+                                  : p.method === "pix" ? "PIX"
+                                  : p.method.toUpperCase();
+                return `
+                  <div class="text-right">
+                    ${methodLabel} R$ ${(p.amount / 100).toFixed(2)}
+                  </div>
+                `;
+              }).join("")}
+              
+              <div class="text-right">TROCO R$ ${(change / 100).toFixed(2)}</div>
+              
+              <div class="divider"></div>
+              <div class="text-center">OBRIGADO PELA PREFERÊNCIA!</div>
+              <script>window.print();</script>
+            </body>
+          </html>
+        `;
+        w.document.write(html);
         w.document.close();
       }
       onSuccess();
