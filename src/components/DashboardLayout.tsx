@@ -29,7 +29,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -374,8 +374,8 @@ function SidebarHeaderContent() {
       <div className="flex items-center gap-3 pl-2 group-data-[collapsible=icon]:px-0 transition-all w-full">
         {isCollapsed ? (
           <div className="relative h-8 w-8 shrink-0 group">
-            <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center ring-1 ring-border shadow-sm">
-              <span className="text-white font-bold text-sm">ERP</span>
+            <div className="h-8 w-8 rounded-md overflow-hidden ring-1 ring-border shadow-sm shrink-0 bg-white">
+              <img src="/logo.png" alt="Logo" className="h-full w-full object-cover" />
             </div>
             <button
               onClick={toggleSidebar}
@@ -387,8 +387,8 @@ function SidebarHeaderContent() {
         ) : (
           <>
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center ring-1 ring-border shadow-sm shrink-0">
-                <span className="text-white font-bold text-sm">ERP</span>
+              <div className="h-8 w-8 rounded-md overflow-hidden ring-1 ring-border shadow-sm shrink-0 bg-white">
+                <img src="/logo.png" alt="Logo" className="h-full w-full object-cover" />
               </div>
               <span className="font-semibold tracking-tight truncate">
                 {APP_TITLE}
@@ -565,6 +565,13 @@ function SidebarFooterContent({
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Avatar className="h-9 w-9 border shrink-0">
+              {user?.fotoCaminho && (
+                <AvatarImage
+                  src={`http://localhost:3000${user.fotoCaminho}`}
+                  alt={user?.name}
+                  className="object-cover"
+                />
+              )}
               <AvatarFallback className="text-xs font-medium">
                 {user?.name?.charAt(0).toUpperCase()}
               </AvatarFallback>

@@ -41,8 +41,53 @@ export function LandingPage() {
     }
   }, [isAuthenticated, user, setLocation]);
 
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.08,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("reveal-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    const revealElements = document.querySelectorAll(".reveal-on-scroll");
+    revealElements.forEach((el) => observer.observe(el));
+
+    return () => {
+      revealElements.forEach((el) => observer.unobserve(el));
+    };
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white scroll-smooth text-slate-900">
+      <style dangerouslySetInnerHTML={{__html: `
+        .reveal-on-scroll {
+          opacity: 0;
+          transform: translateY(40px) scale(0.97);
+          filter: blur(2px);
+          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: transform, opacity, filter;
+        }
+        .reveal-visible {
+          opacity: 1 !important;
+          transform: translateY(0) scale(1) !important;
+          filter: blur(0) !important;
+        }
+        .reveal-card {
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .reveal-card:hover {
+          transform: translateY(-8px) scale(1.02) !important;
+          box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.22) !important;
+        }
+      `}} />
       {/* WhatsApp Floating Button */}
       <a
         href="https://wa.me/5562993243263"
@@ -113,7 +158,7 @@ export function LandingPage() {
             </div>
             <h1 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.05] mb-8 tracking-tighter">
               Sistema de Gestão para Varejo: <br/>
-              <span className="text-primary italic">PDV, NF-e e ERP</span>
+              <span className="text-primary italic">PDV e NF-e</span>
             </h1>
             <p className="text-lg text-slate-600 mb-10 leading-relaxed font-medium">
               Automatize vendas, controle estoque e emita notas fiscais com agilidade. Solução ideal para <span className="text-primary font-black">supermercados</span> e comércio em geral.
@@ -180,32 +225,14 @@ export function LandingPage() {
         </div>
 
         {/* Hero Bottom Stats Bar */}
-        <div className="bg-primary py-8 relative z-20 overflow-hidden mt-10">
-          <div className="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24">
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-primary bg-slate-200 overflow-hidden">
-                    <img src={`https://i.pravatar.cc/100?u=${i}`} alt="User" />
-                  </div>
-                ))}
-                <div className="w-10 h-10 rounded-full border-2 border-primary bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-xs font-bold">+</div>
-              </div>
-              <div className="text-white">
-                <span className="text-2xl font-black block leading-none">+1.300</span>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Clientes Ativos</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
-                <ShoppingCart size={24} />
-              </div>
-              <div className="text-white">
-                <span className="text-2xl font-black block leading-none">+500</span>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-80">PDVs Operando</span>
-              </div>
-            </div>
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 py-8 relative z-20 overflow-hidden mt-10 border-y border-white/10 shadow-lg">
+          <div className="max-w-4xl mx-auto px-6 text-center space-y-3">
+            <h3 className="text-white text-xl md:text-2xl font-black tracking-tight leading-snug">
+              🚀 Aqui na Trakto, conferir mercadoria no papel ficou no passado!
+            </h3>
+            <p className="text-blue-100 text-sm md:text-base font-semibold leading-relaxed max-w-2xl mx-auto opacity-95">
+              Com nosso ERP, seu celular se transforma em um coletor profissional, trazendo mais rapidez, precisão e eficiência para sua operação.
+            </p>
           </div>
         </div>
       </section>
@@ -219,7 +246,7 @@ export function LandingPage() {
           </div>
 
           <div className="flex justify-center max-w-2xl mx-auto">
-            <div className="bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-200/50 hover:scale-[1.02] transition-transform group w-full">
+            <div className="bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-200/50 transition-transform group w-full reveal-on-scroll reveal-card">
               <div className="h-64 relative overflow-hidden bg-slate-100">
                 <img src="/images/supermarket-showcase.webp" alt="Supermercado Real" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest">Supermercados</div>
@@ -270,7 +297,7 @@ export function LandingPage() {
                 desc: "Tenha seus dados protegidos com backup automático e criptografia de ponta a ponta." 
               }
             ].map((f, i) => (
-              <div key={i} className="p-8 rounded-[32px] bg-slate-50 hover:bg-white hover:shadow-2xl hover:shadow-primary/10 transition-all group text-center flex flex-col items-center">
+              <div key={i} className="p-8 rounded-[32px] bg-slate-50 transition-all group text-center flex flex-col items-center reveal-on-scroll reveal-card" style={{ transitionDelay: `${i * 150}ms` }}>
                 <div className="mb-6 p-4 bg-white rounded-2xl w-fit shadow-sm group-hover:scale-110 transition-transform">
                   {f.icon}
                 </div>
@@ -294,7 +321,7 @@ export function LandingPage() {
 
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* Starter Plan */}
-            <Card className="p-8 border-0 shadow-2xl rounded-[32px] bg-white hover:scale-105 transition-transform flex flex-col h-full">
+            <Card className="p-8 border-0 shadow-2xl rounded-[32px] bg-white flex flex-col h-full reveal-on-scroll reveal-card" style={{ transitionDelay: "0ms" }}>
               <div className="mb-8">
                 <h3 className="text-xl font-black mb-2">Starter</h3>
                 <p className="text-slate-400 font-bold text-sm">Ideal para pequenos negócios</p>
@@ -333,7 +360,7 @@ export function LandingPage() {
             </Card>
 
             {/* Professional Plan */}
-            <Card className="p-8 border-primary border-2 shadow-2xl shadow-primary/20 rounded-[32px] bg-white hover:scale-105 transition-transform flex flex-col h-full relative overflow-hidden">
+            <Card className="p-8 border-primary border-2 shadow-2xl shadow-primary/20 rounded-[32px] bg-white flex flex-col h-full relative overflow-hidden reveal-on-scroll reveal-card" style={{ transitionDelay: "150ms" }}>
               <div className="absolute top-4 right-[-35px] bg-primary text-white text-[10px] font-black uppercase py-1 px-10 rotate-45">Popular</div>
               <div className="mb-8">
                 <h3 className="text-xl font-black mb-2 text-primary">Profissional</h3>
@@ -382,7 +409,7 @@ export function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
+      <section className="py-24 bg-slate-900 text-white relative overflow-hidden reveal-on-scroll">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] opacity-30" />
         <div className="max-w-7xl mx-auto px-4 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
@@ -411,7 +438,7 @@ export function LandingPage() {
               { q: "Consigo importar meus dados de outro sistema?", a: "Com certeza. Nossa equipe auxilia na migração de dados de produtos, clientes e fornecedores para que você comece rápido." },
               { q: "Como funciona o suporte técnico?", a: "Oferecemos suporte humano via WhatsApp e acesso remoto em horário comercial, com plantão para emergências de PDV." }
             ].map((item, i) => (
-              <div key={i} className="border-b border-slate-100 pb-4">
+              <div key={i} className="border-b border-slate-100 pb-4 reveal-on-scroll" style={{ transitionDelay: `${i * 100}ms` }}>
                 <button onClick={() => toggleFaq(i)} className="w-full py-4 flex justify-between items-center text-left hover:text-primary transition-colors">
                   <span className="font-black text-slate-900">{item.q}</span>
                   {openFaq === i ? <ChevronUp size={20} className="text-primary" /> : <ChevronDown size={20} className="text-slate-300" />}
@@ -451,7 +478,7 @@ export function LandingPage() {
             <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-8">Contato</h4>
             <ul className="space-y-4 font-bold text-sm text-slate-500">
               <li className="flex items-center gap-2">WhatsApp: (62) 99324-3263</li>
-              <li className="flex items-center gap-2">E-mail: comercial@Trakto ERP.com.br</li>
+              <li className="flex items-center gap-2">E-mail: traktoerp@gmail.com</li>
             </ul>
           </div>
         </div>

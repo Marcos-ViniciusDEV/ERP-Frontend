@@ -24,10 +24,18 @@ import {
 } from "@/components/ui/select";
 
 export default function ConsultarVendas() {
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const todayStr = new Date().toLocaleDateString('sv');
+  const [dataInicio, setDataInicio] = useState(todayStr);
+  const [dataFim, setDataFim] = useState(todayStr);
   const [codigoBarras, setCodigoBarras] = useState("");
   const [departamentoId, setDepartamentoId] = useState<string>("");
+
+  const [searchParams, setSearchParams] = useState({
+    dataInicio: todayStr,
+    dataFim: todayStr,
+    codigoBarras: "",
+    departamentoId: "",
+  });
 
   // Buscar departamentos para o filtro
   const { data: departamentos } = useQuery({
@@ -41,33 +49,43 @@ export default function ConsultarVendas() {
   const {
     data: vendas,
     isLoading,
-    refetch,
     isFetched,
   } = useQuery({
-    queryKey: ["vendas", dataInicio, dataFim, codigoBarras, departamentoId],
+    queryKey: ["vendas", searchParams.dataInicio, searchParams.dataFim, searchParams.codigoBarras, searchParams.departamentoId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (dataInicio) params.append("dataInicio", dataInicio);
-      if (dataFim) params.append("dataFim", dataFim);
-      if (codigoBarras) params.append("codigoBarras", codigoBarras);
-      if (departamentoId && departamentoId !== "all")
-        params.append("departamentoId", departamentoId);
+      if (searchParams.dataInicio) params.append("dataInicio", searchParams.dataInicio);
+      if (searchParams.dataFim) params.append("dataFim", searchParams.dataFim);
+      if (searchParams.codigoBarras) params.append("codigoBarras", searchParams.codigoBarras);
+      if (searchParams.departamentoId && searchParams.departamentoId !== "all")
+        params.append("departamentoId", searchParams.departamentoId);
 
       const { data } = await api.get(`/vendas?${params.toString()}`);
       return data;
     },
-    enabled: false,
+    enabled: true,
   });
 
   const handleSearch = () => {
-    refetch();
+    setSearchParams({
+      dataInicio,
+      dataFim,
+      codigoBarras,
+      departamentoId,
+    });
   };
 
   const handleClear = () => {
-    setDataInicio("");
-    setDataFim("");
+    setDataInicio(todayStr);
+    setDataFim(todayStr);
     setCodigoBarras("");
     setDepartamentoId("");
+    setSearchParams({
+      dataInicio: todayStr,
+      dataFim: todayStr,
+      codigoBarras: "",
+      departamentoId: "",
+    });
   };
 
   const handlePrintReceipt = (venda: any) => {
