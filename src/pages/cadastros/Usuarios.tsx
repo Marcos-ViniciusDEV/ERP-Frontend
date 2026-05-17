@@ -48,6 +48,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Switch } from "@/components/ui/switch";
 
 // Schema for user form
 const userSchema = z.object({
@@ -64,10 +65,73 @@ type User = {
   id: number;
   name: string;
   email: string;
-  role: "user" | "admin" | "pdv_operator" | "super_admin";
+  role: "user" | "admin" | "pdv_operator" | "trakto_admin";
   lastSignedIn: string | null;
   createdAt: string;
+  fotoCaminho?: string | null;
+  permissions?: string;
 };
+
+interface PermissionDefinition {
+  key: string;
+  name: string;
+}
+
+interface PermissionModuleGroup {
+  module: string;
+  items: PermissionDefinition[];
+}
+
+const PERMISSION_GROUPS: PermissionModuleGroup[] = [
+  {
+    module: "Cadastros",
+    items: [
+      { key: "cadastros_clientes", name: "Acesso a Clientes" },
+      { key: "cadastros_departamentos", name: "Acesso a Departamentos" },
+      { key: "estoque_produtos", name: "Acesso ao Cadastro de Produtos" },
+      { key: "compras_fornecedores", name: "Acesso ao Cadastro de Fornecedores" },
+    ],
+  },
+  {
+    module: "Estoque",
+    items: [
+      { key: "estoque_entrada", name: "Entrada de Mercadoria (Compra/NFe)" },
+      { key: "estoque_conferencia", name: "Conferência de Mercadoria" },
+      { key: "estoque_materiais", name: "Ficha Técnica (Materiais / Receitas)" },
+      { key: "estoque_producao", name: "Lançamento de Produção" },
+      { key: "estoque_baixas", name: "Baixas Manuais de Estoque" },
+      { key: "estoque_inventario", name: "Inventário e Auditoria" },
+      { key: "produtos_incluir", name: "Produtos - Incluir Novo" },
+      { key: "produtos_alterar", name: "Produtos - Alterar/Editar" },
+      { key: "produtos_excluir", name: "Produtos - Excluir" },
+    ],
+  },
+  {
+    module: "Compras & Vendas",
+    items: [
+      { key: "compras_pedidos", name: "Pedidos de Compra" },
+      { key: "vendas_consultar", name: "Histórico e Consulta de Vendas" },
+      { key: "vendas_ofertas", name: "Gestão de Ofertas Agendadas" },
+      { key: "vendas_devolucoes", name: "Trocas e Devoluções" },
+    ],
+  },
+  {
+    module: "Financeiro",
+    items: [
+      { key: "financeiro_receber", name: "Contas a Receber" },
+      { key: "financeiro_pagar", name: "Contas a Pagar" },
+      { key: "financeiro_caixa", name: "Movimentação de Caixa / Sangria" },
+    ],
+  },
+  {
+    module: "Relatórios & Outros",
+    items: [
+      { key: "relatorios_ver", name: "Visualizar Relatórios e Curva ABC" },
+      { key: "utilitarios_etiquetas", name: "Emissão de Etiquetas" },
+      { key: "pdv_online", name: "Acesso ao PDV Online" },
+    ],
+  },
+];
 
 export default function Usuarios() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,9 +139,64 @@ export default function Usuarios() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<"erp" | "pdv">("erp");
 
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<User | null>(null);
+  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
+
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
-  const canManage = currentUser?.role === "admin" || currentUser?.role === "super_admin";
+  const canManage = currentUser?.role === "admin" || currentUser?.role === "trakto_admin";
+
+  const savePermissionsMutation = useMutation({
+    mutationFn: async (payload: { userId: number; permissions: Record<string, boolean> }) => {
+      const { data } = await api.put(`/users/${payload.userId}/permissions`, {
+        permissions: payload.permissions
+      });
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Permissões do usuário atualizadas com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setIsPermissionsModalOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Erro ao salvar permissões");
+    }
+  });
+
+  const handleOpenPermissions = (user: User) => {
+    setSelectedUserForPermissions(user);
+    
+    // Parse current user permissions
+    let parsedPerms: Record<string, boolean> = {};
+    if (user.permissions) {
+      try {
+        parsedPerms = typeof user.permissions === "string" 
+          ? JSON.parse(user.permissions) 
+          : user.permissions;
+      } catch (e) {
+        console.error("Erro ao carregar permissões:", e);
+      }
+    }
+    
+    // Fill in default false values for undefined permissions
+    const finalPerms: Record<string, boolean> = {};
+    PERMISSION_GROUPS.forEach(group => {
+      group.items.forEach(item => {
+        finalPerms[item.key] = !!parsedPerms[item.key];
+      });
+    });
+    
+    setUserPermissions(finalPerms);
+    setIsPermissionsModalOpen(true);
+  };
+
+  const handleTogglePermission = (key: string) => {
+    setUserPermissions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["users", searchTerm],
@@ -174,7 +293,7 @@ export default function Usuarios() {
     setEditingUser(user);
     setValue("name", user.name);
     setValue("email", user.email);
-    setValue("role", user.role === "super_admin" ? "admin" : (user.role as any));
+    setValue("role", user.role === "trakto_admin" ? "admin" : (user.role as any));
     setValue("password", ""); 
     setValue("supervisorPassword", "");
     setIsModalOpen(true);
@@ -218,7 +337,7 @@ export default function Usuarios() {
   };
 
   // Filter users by role categories
-  const erpUsers = users?.filter(u => u.role === "admin" || u.role === "user" || u.role === "super_admin") || [];
+  const erpUsers = users?.filter(u => u.role === "admin" || u.role === "user" || u.role === "trakto_admin") || [];
   const pdvUsers = users?.filter(u => u.role === "pdv_operator") || [];
 
   return (
@@ -370,23 +489,34 @@ export default function Usuarios() {
                         erpUsers.map((user) => (
                           <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
                             <TableCell className="font-medium flex items-center gap-2.5 py-4">
-                              <div className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                                {user.name.charAt(0).toUpperCase()}
-                              </div>
+                              {user.fotoCaminho ? (
+                                <img 
+                                  src={`http://localhost:3000${user.fotoCaminho}`} 
+                                  alt={user.name} 
+                                  className="h-8 w-8 rounded-full object-cover shadow-sm border border-slate-200 shrink-0"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               {user.name}
                             </TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell>
                               <Badge 
                                 className={
-                                  user.role === "super_admin" 
+                                  user.role === "trakto_admin" 
                                     ? "bg-purple-100 text-purple-800 hover:bg-purple-100" 
                                     : user.role === "admin" 
                                     ? "bg-rose-100 text-rose-800 hover:bg-rose-100" 
                                     : "bg-blue-100 text-blue-800 hover:bg-blue-100"
                                 }
                               >
-                                {user.role === "super_admin" ? "SaaS Master" : user.role === "admin" ? "Administrador" : "Usuário Web"}
+                                {user.role === "trakto_admin" ? "Trakto Admin" : user.role === "admin" ? "Administrador" : "Usuário Web"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs">
@@ -396,6 +526,15 @@ export default function Usuarios() {
                               <div className="flex justify-end gap-1.5">
                                 {canManage && (
                                   <>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700" 
+                                      title="Editar Permissões"
+                                      onClick={() => handleOpenPermissions(user)}
+                                    >
+                                      <ShieldCheck className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" className="hover:bg-slate-100 text-slate-600" onClick={() => handleEdit(user)}>
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -453,9 +592,20 @@ export default function Usuarios() {
                         pdvUsers.map((user) => (
                           <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
                             <TableCell className="font-medium flex items-center gap-2.5 py-4">
-                              <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                                {user.name.charAt(0).toUpperCase()}
-                              </div>
+                              {user.fotoCaminho ? (
+                                <img 
+                                  src={`http://localhost:3000${user.fotoCaminho}`} 
+                                  alt={user.name} 
+                                  className="h-8 w-8 rounded-full object-cover shadow-sm border border-slate-200 shrink-0"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               {user.name}
                             </TableCell>
                             <TableCell>{user.email}</TableCell>
@@ -477,6 +627,15 @@ export default function Usuarios() {
                               <div className="flex justify-end gap-1.5">
                                 {canManage && (
                                   <>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700" 
+                                      title="Editar Permissões"
+                                      onClick={() => handleOpenPermissions(user)}
+                                    >
+                                      <ShieldCheck className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" className="hover:bg-slate-100 text-slate-600" onClick={() => handleEdit(user)}>
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -574,6 +733,72 @@ export default function Usuarios() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Modal for Permissions Management */}
+        <Dialog open={isPermissionsModalOpen} onOpenChange={setIsPermissionsModalOpen}>
+          <DialogContent className="sm:max-w-[650px] max-h-[85vh] flex flex-col p-0 rounded-2xl overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b bg-slate-50/50">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                <ShieldCheck className="h-5.5 w-5.5 text-indigo-600" />
+                <span>Editar Permissões do Usuário</span>
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Configure os acessos específicos de <strong>{selectedUserForPermissions?.name}</strong> ({selectedUserForPermissions?.email}) às rotinas do sistema.
+              </p>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+              {selectedUserForPermissions?.role === "admin" || selectedUserForPermissions?.role === "trakto_admin" ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-900">
+                  <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Acesso de Administrador Habilitado</span>
+                    Este usuário possui a função de <strong>{selectedUserForPermissions.role === "trakto_admin" ? "Trakto Admin" : "Administrador"}</strong>. 
+                    Usuários administradores têm acesso irrestrito a todas as rotinas e módulos do ERP por padrão.
+                  </div>
+                </div>
+              ) : (
+                PERMISSION_GROUPS.map((group) => (
+                  <div key={group.module} className="space-y-2 border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="bg-slate-50 px-4 py-2 border-b">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{group.module}</span>
+                    </div>
+                    <div className="divide-y">
+                      {group.items.map((item) => (
+                        <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50/30 transition-colors">
+                          <div className="space-y-0.5 pr-4">
+                            <span className="text-sm font-medium text-slate-700">{item.name}</span>
+                          </div>
+                          <Switch
+                            checked={!!userPermissions[item.key]}
+                            onCheckedChange={() => handleTogglePermission(item.key)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <DialogFooter className="px-6 py-4 border-t bg-slate-50/50 flex justify-end gap-2 md:gap-0">
+              <Button type="button" variant="outline" className="rounded-lg" onClick={() => setIsPermissionsModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                disabled={savePermissionsMutation.isPending || selectedUserForPermissions?.role === "admin" || selectedUserForPermissions?.role === "trakto_admin"} 
+                className="rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-medium shadow-sm"
+                onClick={() => savePermissionsMutation.mutate({
+                  userId: selectedUserForPermissions!.id,
+                  permissions: userPermissions
+                })}
+              >
+                {savePermissionsMutation.isPending ? "Salvando..." : "Salvar Permissões"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

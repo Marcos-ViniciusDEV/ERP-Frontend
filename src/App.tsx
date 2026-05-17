@@ -8,7 +8,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -53,7 +53,8 @@ import { Profile } from "./pages/Profile";
 
 import ConferenciaMercadoria from "./pages/estoque/ConferenciaMercadoria";
 import { useEffect } from "react";
-import { setAuthToken } from "./_core/hooks/useAuth";
+import { setAuthToken, useAuth } from "./_core/hooks/useAuth";
+import { hasPermission } from "./_core/utils/permissions";
 import GerenciarPDV from "./pages/pdv/GerenciarPDV";
 import PdvOnline from "./pages/pdv/PdvOnline";
 import GestaoOfertas from "./pages/GestaoOfertas";
@@ -65,6 +66,36 @@ import DashboardMetas from "./pages/relatorios/DashboardMetas";
 import CurvaABC from "./pages/relatorios/CurvaABC";
 import SupermercadoFeatures from "./pages/SupermercadoFeatures";
 import AuthPage from "./pages/AuthPage";
+
+/**
+ * Componente que encapsula a lógica de proteção de rotas com RBAC
+ */
+function PermissionRoute({
+  path,
+  component: Component,
+  permission,
+}: {
+  path: string;
+  component: React.ComponentType<any>;
+  permission?: string;
+}) {
+  return (
+    <Route path={path}>
+      {(params) => {
+        const { user, loading } = useAuth();
+        if (loading) return null;
+        if (!user) return <Redirect to="/login" />;
+        
+        // Validação da permissão do usuário logado
+        if (permission && !hasPermission(user, permission)) {
+          return <Redirect to="/dashboard" />;
+        }
+        
+        return <Component {...params} />;
+      }}
+    </Route>
+  );
+}
 
 /**
  * Componente de Roteamento
@@ -97,62 +128,53 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
 
       {/* Cadastros */}
-      <Route path={"/cadastros/clientes"} component={Clientes} />
-      <Route path={"/cadastros/usuarios"} component={Usuarios} />
-      <Route path="/cadastros/departamentos" component={Departamentos} />
-      <Route path={"/estoque/produtos"} component={Produtos} />
-      <Route path={"/compras/fornecedores"} component={Fornecedores} />
-      <Route path={"/financeiro/pagar"} component={ContasPagar} />
-      <Route path="/estoque/entrada" component={EntradaMercadoria} />
-      <Route path="/estoque/conferencia" component={ConferenciaMercadoria} />
-      <Route path={"/estoque/materiais"} component={GestaoMateriais} />
-      <Route path={"/estoque/receitas"} component={GestaoReceitas} />
-      <Route path={"/estoque/producao"} component={LancamentoProducao} />
-      <Route path={"/estoque/baixas"} component={BaixasManuais} />
-      <Route path={"/estoque/inventario"} component={Inventario} />
-      <Route path={"/financeiro/receber"} component={ContasReceber} />
-      <Route path={"/compras/pedidos"} component={PedidosCompra} />
+      <PermissionRoute path={"/cadastros/clientes"} component={Clientes} permission="cadastros_clientes" />
+      <PermissionRoute path={"/cadastros/usuarios"} component={Usuarios} permission="cadastros_usuarios" />
+      <PermissionRoute path="/cadastros/departamentos" component={Departamentos} permission="cadastros_departamentos" />
+      <PermissionRoute path={"/estoque/produtos"} component={Produtos} permission="estoque_produtos" />
+      <PermissionRoute path={"/compras/fornecedores"} component={Fornecedores} permission="compras_fornecedores" />
+      <PermissionRoute path={"/financeiro/pagar"} component={ContasPagar} permission="financeiro_pagar" />
+      <PermissionRoute path="/estoque/entrada" component={EntradaMercadoria} permission="estoque_entrada" />
+      <PermissionRoute path="/estoque/conferencia" component={ConferenciaMercadoria} permission="estoque_conferencia" />
+      <PermissionRoute path={"/estoque/materiais"} component={GestaoMateriais} permission="estoque_materiais" />
+      <PermissionRoute path={"/estoque/receitas"} component={GestaoReceitas} permission="estoque_materiais" />
+      <PermissionRoute path={"/estoque/producao"} component={LancamentoProducao} permission="estoque_producao" />
+      <PermissionRoute path={"/estoque/baixas"} component={BaixasManuais} permission="estoque_baixas" />
+      <PermissionRoute path={"/estoque/inventario"} component={Inventario} permission="estoque_inventario" />
+      <PermissionRoute path={"/financeiro/receber"} component={ContasReceber} permission="financeiro_receber" />
+      <PermissionRoute path={"/compras/pedidos"} component={PedidosCompra} permission="compras_pedidos" />
 
-      <Route path={"/vendas/consultar"} component={ConsultarVendas} />
-      <Route path={"/vendas/ofertas"} component={GestaoOfertas} />
-      <Route path={"/vendas/devolucoes"} component={GestaoDevolucoes} />
-      <Route path={"/financeiro/caixa"} component={MovimentacaoCaixa} />
-      <Route path={"/utilitarios/etiquetas"} component={Etiquetas} />
-      <Route path="/relatorios/posicao-estoques" component={PosicaoEstoques} />
-      <Route
-        path="/relatorios/movimento-vendedores"
-        component={MovimentoVendedores}
-      />
-      <Route
-        path="/relatorios/sangrias"
-        component={RelatorioSangrias}
-      />
-      <Route
-        path="/relatorios/resumo-diario-vendas"
-        component={ResumoDiarioVendas}
-      />
-
-      {/* Relatórios em Desenvolvimento */}
-      <Route path="/relatorios/resumo-documento" component={ResumoPorDocumento} />
-      <Route path="/relatorios/resumo-documento-cancelamentos" component={ResumoPorDocumentoCancelamentos} />
-      <Route path="/relatorios/relacao-produtos" component={RelacaoProdutos} />
-      <Route path="/relatorios/resumo-movimento" component={ResumoMovimento} />
-      <Route path="/relatorios/movimento-unidades" component={ResumoMovimentoUnidades} />
-      <Route path="/relatorios/tipo-movimento" component={ResumoTipoMovimento} />
-      <Route path="/relatorios/marcas-vendas" component={ResumosMarcasVendas} />
-      <Route path="/relatorios/movimento-hierarquico" component={MovimentoHierarquico} />
-      <Route path="/relatorios/mesa-movimento" component={MesaDeMovimento} />
-      <Route path="/relatorios/resumo-lancamento" component={ResumoLancamento} />
-      <Route path="/relatorios/resumo-produto" component={ResumoPorProduto} />
-      <Route path="/relatorios/resumo-faturamentos" component={ResumoFaturamentos} />
-
-      <Route path="/relatorios/notas-contribuintes" component={RelacaoNotasContribuintes} />
-      <Route path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} />
-      <Route path="/relatorios/metas" component={DashboardMetas} />
-      <Route path="/relatorios/curva-abc" component={CurvaABC} />
+      <PermissionRoute path={"/vendas/consultar"} component={ConsultarVendas} permission="vendas_consultar" />
+      <PermissionRoute path={"/vendas/ofertas"} component={GestaoOfertas} permission="vendas_ofertas" />
+      <PermissionRoute path={"/vendas/devolucoes"} component={GestaoDevolucoes} permission="vendas_devolucoes" />
+      <PermissionRoute path={"/financeiro/caixa"} component={MovimentacaoCaixa} permission="financeiro_caixa" />
+      <PermissionRoute path={"/utilitarios/etiquetas"} component={Etiquetas} permission="utilitarios_etiquetas" />
+      
+      {/* Relatórios */}
+      <PermissionRoute path="/relatorios/posicao-estoques" component={PosicaoEstoques} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/movimento-vendedores" component={MovimentoVendedores} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/sangrias" component={RelatorioSangrias} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-diario-vendas" component={ResumoDiarioVendas} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-documento" component={ResumoPorDocumento} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-documento-cancelamentos" component={ResumoPorDocumentoCancelamentos} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/relacao-produtos" component={RelacaoProdutos} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-movimento" component={ResumoMovimento} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/movimento-unidades" component={ResumoMovimentoUnidades} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/tipo-movimento" component={ResumoTipoMovimento} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/marcas-vendas" component={ResumosMarcasVendas} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/movimento-hierarquico" component={MovimentoHierarquico} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/mesa-movimento" component={MesaDeMovimento} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-lancamento" component={ResumoLancamento} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-produto" component={ResumoPorProduto} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/resumo-faturamentos" component={ResumoFaturamentos} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/notas-contribuintes" component={RelacaoNotasContribuintes} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/metas" component={DashboardMetas} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/curva-abc" component={CurvaABC} permission="relatorios_ver" />
+      
       <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
-      <Route path="/pdv/gerenciar" component={GerenciarPDV} />
-      <Route path="/pdv/online" component={PdvOnline} />
+      <PermissionRoute path="/pdv/gerenciar" component={GerenciarPDV} permission="pdv_gerenciar" />
+      <PermissionRoute path="/pdv/online" component={PdvOnline} permission="pdv_online" />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -24,6 +24,8 @@ import { Search, RefreshCw, Send } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { hasPermission } from "@/_core/utils/permissions";
 import { ResumoMvtoTab } from "./components/ResumoMvtoTab";
 import { HistoricoTab } from "./components/HistoricoTab";
 import { Produto } from "@/shared/schema";
@@ -35,6 +37,7 @@ interface Departamento {
 }
 
 export default function Produtos() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -706,6 +709,8 @@ export default function Produtos() {
             className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
             variant="ghost"
             onClick={handleNewProduct}
+            disabled={!hasPermission(user, "produtos_incluir")}
+            title={!hasPermission(user, "produtos_incluir") ? "Você não tem permissão para incluir produtos" : "Incluir novo produto"}
           >
             Incluir
           </Button>
@@ -714,7 +719,8 @@ export default function Produtos() {
             className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
             variant="ghost"
             onClick={() => selectedProduto && handleEdit(selectedProduto)}
-            disabled={!selectedProduto}
+            disabled={!selectedProduto || !hasPermission(user, "produtos_alterar")}
+            title={!selectedProduto ? "Selecione um produto para alterar" : !hasPermission(user, "produtos_alterar") ? "Você não tem permissão para alterar produtos" : "Alterar produto selecionado"}
           >
             Alterar
           </Button>
@@ -722,7 +728,8 @@ export default function Produtos() {
             className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
             variant="ghost"
             onClick={() => selectedProduto && handleDelete(selectedProduto.id)}
-            disabled={!selectedProduto}
+            disabled={!selectedProduto || !hasPermission(user, "produtos_excluir")}
+            title={!selectedProduto ? "Selecione um produto para excluir" : !hasPermission(user, "produtos_excluir") ? "Você não tem permissão para excluir produtos" : "Excluir produto selecionado"}
           >
             Excluir
           </Button>
