@@ -285,6 +285,12 @@ export default function Usuarios() {
   };
 
   const handleOpenNewUserModal = () => {
+    const plano = currentUser?.empresa?.plano;
+    const isStarterOrBasico = plano === "STARTER" || plano === "BASICO";
+    if (isStarterOrBasico && users && users.length >= 1) {
+      toast.error("O plano atual permite apenas 1 usuário. Faça upgrade para adicionar mais.");
+      return;
+    }
     resetForm();
     setIsModalOpen(true);
   };
@@ -313,6 +319,15 @@ export default function Usuarios() {
     if (!canManage) {
       toast.error("Você não tem permissão para salvar alterações.");
       return;
+    }
+
+    if (!editingUser) {
+      const plano = currentUser?.empresa?.plano;
+      const isStarterOrBasico = plano === "STARTER" || plano === "BASICO";
+      if (isStarterOrBasico && users && users.length >= 1) {
+        toast.error("O plano atual permite apenas 1 usuário. Faça upgrade para adicionar mais.");
+        return;
+      }
     }
 
     if (!editingUser && !data.password) {
@@ -691,7 +706,7 @@ export default function Usuarios() {
                     {activeTab === "erp" ? (
                       <>
                         <SelectItem value="user">💻 Usuário Web (ERP Administrativo)</SelectItem>
-                        <SelectItem value="admin">🔑 Administrador (Acesso Completo + Time)</SelectItem>
+                        <SelectItem value="admin">🔑 Administrador (Acesso Completo)</SelectItem>
                       </>
                     ) : (
                       <SelectItem value="pdv_operator">🛒 Operador PDV (Frente de Caixa)</SelectItem>
