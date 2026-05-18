@@ -62,6 +62,22 @@ import {
   X,
   ChevronRight,
   User,
+  LayoutDashboard,
+  Users,
+  FolderTree,
+  Building2,
+  TrendingUp,
+  FileText,
+  ClipboardCheck,
+  CreditCard,
+  ShoppingCart,
+  Box,
+  Settings,
+  Calculator,
+  Tag,
+  Database,
+  Smartphone,
+  BarChart3,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -84,6 +100,33 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+
+export const getIconForPath = (path: string) => {
+  if (path === "/") return LayoutDashboard;
+  if (path.includes("/cadastros/clientes")) return Users;
+  if (path.includes("/cadastros/departamentos")) return FolderTree;
+  if (path.includes("/estoque/produtos")) return Package;
+  if (path.includes("/compras/fornecedores")) return Building2;
+  if (path.includes("/cadastros/usuarios")) return Users;
+  if (path.includes("/vendas/consultar")) return BarChart3;
+  if (path.includes("/estoque/entrada")) return FileText;
+  if (path.includes("/estoque/conferencia")) return ClipboardCheck;
+  if (path.includes("/estoque/baixas")) return TrendingUp;
+  if (path.includes("/financeiro/caixa")) return CreditCard;
+  if (path.includes("/compras/pedidos")) return ShoppingCart;
+  if (path.includes("/estoque/inventario")) return Box;
+  if (path.includes("/financeiro/receber")) return CreditCard;
+  if (path.includes("/financeiro/pagar")) return FileText;
+  if (path.includes("/configuracoes/parametros")) return Settings;
+  if (path.includes("/configuracoes/calculadora")) return Calculator;
+  if (path.includes("/utilitarios/etiquetas")) return Tag;
+  if (path.includes("/utilitarios/importacao")) return Database;
+  if (path.includes("/pdv/gerenciar")) return Smartphone;
+  if (path.includes("/pdv/online")) return Smartphone;
+  if (path.includes("/relatorios/")) return BarChart3;
+  
+  return Package; // Default fallback
+};
 
 export default function DashboardLayout({
   children,
@@ -237,7 +280,7 @@ function DashboardLayoutContent({
 
   const handleRemoveShortcut = (itemId: string) => {
     const item = shortcuts.find(s => s.id === itemId);
-    if (item?.isCustom) {
+    if (item) {
       removeShortcut(itemId);
       toast.success(`Atalho "${item?.label}" removido!`);
     }
@@ -246,10 +289,8 @@ function DashboardLayoutContent({
 
   const handleContextMenu = (
     e: React.MouseEvent,
-    itemId: string,
-    isCustom?: boolean
+    itemId: string
   ) => {
-    if (!isCustom) return; // Só permite remover atalhos personalizados
     e.preventDefault();
     setContextMenu({
       x: e.clientX,
@@ -472,39 +513,45 @@ function SidebarMainContent({
         <SidebarGroup>
           <SidebarGroupLabel>Favoritos</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {shortcuts.map(item => {
-                const isActive = location === item.path;
-                const IconComponent =
-                  typeof item.icon === "function" ? item.icon : Package;
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      onContextMenu={e =>
-                        handleContextMenu(e, item.id, item.isCustom)
-                      }
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal relative group ${item.isCustom ? "cursor-context-menu" : ""}`}
-                    >
-                      <IconComponent
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span className="flex-1">{item.label}</span>
-                      {item.shortcut && (
-                        <span className="text-xs text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden">
-                          {item.shortcut}
-                        </span>
-                      )}
-                      {item.isCustom && (
-                        <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden" />
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {shortcuts.length === 0 ? (
+              <div className="px-3 py-4 mx-2 my-1 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center group-data-[collapsible=icon]:hidden">
+                <p className="text-[11px] font-semibold text-slate-500">Personalize Seus Atalhos</p>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Clique com o botão direito nos itens do menu superior para adicioná-los aqui!
+                </p>
+              </div>
+            ) : (
+              <SidebarMenu>
+                {shortcuts.map(item => {
+                  const isActive = location === item.path;
+                  const IconComponent = getIconForPath(item.path);
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => setLocation(item.path)}
+                        onContextMenu={e =>
+                          handleContextMenu(e, item.id, item.isCustom)
+                        }
+                        tooltip={item.label}
+                        className={`h-10 transition-all font-normal relative group cursor-context-menu`}
+                      >
+                        <IconComponent
+                          className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        />
+                        <span className="flex-1">{item.label}</span>
+                        {item.shortcut && (
+                          <span className="text-xs text-muted-foreground opacity-60 group-data-[collapsible=icon]:hidden">
+                            {item.shortcut}
+                          </span>
+                        )}
+                        <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-rose-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden" />
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -545,7 +592,7 @@ function SidebarMainContent({
       {/* Dica de uso */}
       {!isCollapsed && !isMobile && (
         <div className="px-4 py-3 text-xs text-muted-foreground text-center border-t mt-2">
-          Clique com botão direito em atalhos personalizados para removê-los
+          Clique com botão direito em um atalho para removê-lo
         </div>
       )}
     </SidebarContent>

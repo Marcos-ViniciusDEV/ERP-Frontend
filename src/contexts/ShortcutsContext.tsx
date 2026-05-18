@@ -19,17 +19,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import {
-  LayoutDashboard,
-  FileText,
-  TrendingUp,
-  Box,
-  Package,
-  BarChart3,
-  ShoppingCart,
-  CreditCard,
-  Building2,
-} from "lucide-react";
+import { Package } from "lucide-react";
 
 /**
  * Interface para itens de atalho
@@ -66,85 +56,7 @@ const SHORTCUTS_STORAGE_KEY = "erp-sidebar-shortcuts";
  * Atalhos padrão do sistema
  * Configurados com as principais funcionalidades do ERP
  */
-const DEFAULT_SHORTCUTS: ShortcutItem[] = [
-  {
-    id: "dashboard",
-    icon: LayoutDashboard,
-    label: "Dashboard",
-    path: "/",
-    shortcut: "F1",
-  },
-  {
-    id: "entrada-mercadoria",
-    icon: FileText,
-    label: "Entrada de Mercadoria",
-    path: "/estoque/entrada",
-    shortcut: "F2",
-  },
-  {
-    id: "baixas-manuais",
-    icon: TrendingUp,
-    label: "Baixas Manuais",
-    path: "/estoque/baixas",
-    shortcut: "F3",
-  },
-  {
-    id: "inventario",
-    icon: Box,
-    label: "Inventário",
-    path: "/estoque/inventario",
-    shortcut: "F4",
-  },
-  {
-    id: "produtos",
-    icon: Package,
-    label: "Produtos",
-    path: "/estoque/produtos",
-    shortcut: "F5",
-  },
-  {
-    id: "consultar-vendas",
-    icon: BarChart3,
-    label: "Consultar Vendas",
-    path: "/vendas/consultar",
-    shortcut: "F6",
-  },
-  {
-    id: "caixa",
-    icon: CreditCard,
-    label: "Movimentação de Caixa",
-    path: "/financeiro/caixa",
-    shortcut: "F7",
-  },
-  {
-    id: "contas-pagar",
-    icon: FileText,
-    label: "Contas a Pagar",
-    path: "/financeiro/pagar",
-    shortcut: "F8",
-  },
-  {
-    id: "contas-receber",
-    icon: ShoppingCart,
-    label: "Contas a Receber",
-    path: "/financeiro/receber",
-    shortcut: "F9",
-  },
-  {
-    id: "fornecedores",
-    icon: Building2,
-    label: "Fornecedores",
-    path: "/compras/fornecedores",
-    shortcut: "F10",
-  },
-  {
-    id: "pedidos-compra",
-    icon: ShoppingCart,
-    label: "Pedidos de Compra",
-    path: "/compras/pedidos",
-    shortcut: "F11",
-  },
-];
+const DEFAULT_SHORTCUTS: ShortcutItem[] = [];
 
 /**
  * Provider de Atalhos
