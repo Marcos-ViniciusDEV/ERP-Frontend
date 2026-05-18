@@ -145,7 +145,7 @@ export default function Home() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Visão geral do sistema ERP - RP Info
+            Visão geral do sistema - TRAKTO ERP
           </p>
         </div>
 
@@ -450,7 +450,7 @@ export default function Home() {
                                   <div class="text-center">${new Date(venda.dataVenda).toLocaleString('pt-BR')}</div>
                                   <div class="text-center">Operador: ${venda.operadorNome || 'N/A'}</div>
                                   <div class="text-center" style="margin-top: 20px;">OBRIGADO PELA PREFERÊNCIA!</div>
-                                  <div class="text-center" style="font-size: 10px; margin-top: 10px;">Sistema ERP - RP Info</div>
+                                  <div class="text-center" style="font-size: 10px; margin-top: 10px;">TRAKTO ERP</div>
                                 </body>
                               </html>
                             `);
