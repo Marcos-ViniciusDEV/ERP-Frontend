@@ -114,6 +114,7 @@ export const getIconForPath = (path: string) => {
   if (path.includes("/estoque/baixas")) return TrendingUp;
   if (path.includes("/financeiro/caixa")) return CreditCard;
   if (path.includes("/compras/pedidos")) return ShoppingCart;
+  if (path.includes("/estoque/producao")) return Box;
   if (path.includes("/estoque/inventario")) return Box;
   if (path.includes("/financeiro/receber")) return CreditCard;
   if (path.includes("/financeiro/pagar")) return FileText;

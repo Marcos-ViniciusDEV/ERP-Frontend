@@ -52,6 +52,7 @@ export function useMenuItems() {
     {
       label: "Módulos",
       items: [
+        { label: "Produção", path: "/estoque/producao", permission: "estoque_producao" },
         { label: "Inventário", path: "/estoque/inventario", permission: "estoque_inventario" },
         { label: "Contas a Receber", path: "/financeiro/receber", permission: "financeiro_receber" },
         { label: "Contas a Pagar", path: "/financeiro/pagar", permission: "financeiro_pagar" },

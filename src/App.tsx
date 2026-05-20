@@ -58,9 +58,7 @@ import { hasPermission } from "./_core/utils/permissions";
 import GerenciarPDV from "./pages/pdv/GerenciarPDV";
 import PdvOnline from "./pages/pdv/PdvOnline";
 import GestaoOfertas from "./pages/GestaoOfertas";
-import GestaoMateriais from "./pages/estoque/GestaoMateriais";
-import GestaoReceitas from "./pages/estoque/GestaoReceitas";
-import LancamentoProducao from "./pages/estoque/LancamentoProducao";
+import Producao from "./pages/estoque/Producao";
 import GestaoDevolucoes from "./pages/vendas/GestaoDevolucoes";
 import DashboardMetas from "./pages/relatorios/DashboardMetas";
 import CurvaABC from "./pages/relatorios/CurvaABC";
@@ -136,9 +134,7 @@ function Router() {
       <PermissionRoute path={"/financeiro/pagar"} component={ContasPagar} permission="financeiro_pagar" />
       <PermissionRoute path="/estoque/entrada" component={EntradaMercadoria} permission="estoque_entrada" />
       <PermissionRoute path="/estoque/conferencia" component={ConferenciaMercadoria} permission="estoque_conferencia" />
-      <PermissionRoute path={"/estoque/materiais"} component={GestaoMateriais} permission="estoque_materiais" />
-      <PermissionRoute path={"/estoque/receitas"} component={GestaoReceitas} permission="estoque_materiais" />
-      <PermissionRoute path={"/estoque/producao"} component={LancamentoProducao} permission="estoque_producao" />
+      <PermissionRoute path={"/estoque/producao"} component={Producao} permission="estoque_producao" />
       <PermissionRoute path={"/estoque/baixas"} component={BaixasManuais} permission="estoque_baixas" />
       <PermissionRoute path={"/estoque/inventario"} component={Inventario} permission="estoque_inventario" />
       <PermissionRoute path={"/financeiro/receber"} component={ContasReceber} permission="financeiro_receber" />
