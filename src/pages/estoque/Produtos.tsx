@@ -20,7 +20,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, Send } from "lucide-react";
+import { Search, RefreshCw, Send, Tag, Zap, Calendar, Clock, Percent, DollarSign, Package } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +29,7 @@ import { hasPermission } from "@/_core/utils/permissions";
 import { ResumoMvtoTab } from "./components/ResumoMvtoTab";
 import { HistoricoTab } from "./components/HistoricoTab";
 import { Produto } from "@/shared/schema";
+import { useLocation } from "wouter";
 
 // Define Departamento type locally if not available in schema yet
 interface Departamento {
@@ -38,6 +39,7 @@ interface Departamento {
 
 export default function Produtos() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -185,6 +187,81 @@ export default function Produtos() {
     });
   };
 
+  // --- Estados e funções para Agendamento de Ofertas ---
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [offerFormData, setOfferFormData] = useState({
+    nome: "",
+    tipoDesconto: "PRECO_FIXO" as "PRECO_FIXO" | "PERCENTUAL",
+    precoOferta: 0,
+    percentualDesconto: 0,
+    dataInicio: "",
+    horaInicio: "08:00",
+    dataFim: "",
+    horaFim: "18:00",
+  });
+
+  const handleOpenOfferModal = () => {
+    if (!selectedProduto) return;
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    setOfferFormData({
+      nome: `Oferta - ${selectedProduto.descricao}`,
+      tipoDesconto: "PRECO_FIXO",
+      precoOferta: selectedProduto.precoVenda ? Number((selectedProduto.precoVenda / 100).toFixed(2)) : 0,
+      percentualDesconto: 10,
+      dataInicio: today,
+      horaInicio: "08:00",
+      dataFim: tomorrow,
+      horaFim: "18:00",
+    });
+    setOfferOpen(true);
+  };
+
+  const createOffer = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.post("/offers", data);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Oferta agendada com sucesso!");
+      setOfferOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["produtos"] });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.error || error.message || "Erro ao agendar oferta";
+      toast.error(message);
+    }
+  });
+
+  const handleOfferSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduto) return;
+
+    const dtInicio = new Date(`${offerFormData.dataInicio}T${offerFormData.horaInicio || "00:00"}`);
+    const dtFim = new Date(`${offerFormData.dataFim}T${offerFormData.horaFim || "00:00"}`);
+
+    if (dtInicio >= dtFim) {
+      toast.error("A data/hora de término deve ser posterior à data/hora de início!");
+      return;
+    }
+
+    const payload = {
+      produtoId: selectedProduto.id,
+      nome: offerFormData.nome || `Oferta - ${selectedProduto.descricao}`,
+      tipoDesconto: offerFormData.tipoDesconto,
+      precoOferta: offerFormData.tipoDesconto === "PRECO_FIXO" ? Math.round(Number(offerFormData.precoOferta) * 100) : 0,
+      percentualDesconto: offerFormData.tipoDesconto === "PERCENTUAL" ? Number(offerFormData.percentualDesconto) : 0,
+      dataInicio: offerFormData.dataInicio,
+      dataFim: offerFormData.dataFim,
+      horaInicio: offerFormData.horaInicio || null,
+      horaFim: offerFormData.horaFim || null,
+      aplicacaoAutomatica: true,
+      ativo: true,
+    };
+
+    createOffer.mutate(payload);
+  };
+
   // Atalho de teclado: Barra de espaço abre busca
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -216,10 +293,20 @@ export default function Produtos() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let finalData = { ...formData };
+    
+    // Cálculo de segurança final: se não houver preço de venda, aplica a margem
+    if (!finalData.precoVenda || finalData.precoVenda === 0) {
+      const margem = finalData.margemLucro || 30; // 30% padrão
+      finalData.precoVenda = Math.round((finalData.precoCusto || 0) * (1 + margem / 100));
+      finalData.margemLucro = margem;
+    }
+
     if (editingId) {
-      updateProduto.mutate({ id: editingId, ...formData });
+      updateProduto.mutate({ id: editingId, ...finalData });
     } else {
-      createProduto.mutate(formData);
+      createProduto.mutate(finalData);
     }
   };
 
@@ -540,35 +627,45 @@ export default function Produtos() {
         {/* Sidebar Direita */}
         <div className="w-32 flex flex-col gap-2">
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar Produto" : "Cadastrar Novo Produto"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <DialogContent className="!max-w-4xl !w-[900px] rounded-3xl overflow-hidden border-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-white p-0">
+              <div className="bg-blue-600 px-6 py-5 text-white flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-200" />
+                    {editingId ? "Editar Produto" : "Cadastrar Novo Produto"}
+                  </DialogTitle>
+                  <p className="text-white/80 text-xs mt-1">Preencha os dados do produto abaixo para manter o estoque organizado.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-3">
-                    <Label htmlFor="codigo">Código *</Label>
+                    <Label htmlFor="codigo" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Código *</Label>
                     <Input
                       id="codigo"
                       value={formData.codigo}
                       onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
                       required
                     />
                   </div>
                   <div className="col-span-4">
-                    <Label htmlFor="codigoBarras">Código de Barras</Label>
+                    <Label htmlFor="codigoBarras" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Código de Barras</Label>
                     <Input
                       id="codigoBarras"
                       value={formData.codigoBarras}
                       onChange={(e) => setFormData({ ...formData, codigoBarras: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
                     />
                   </div>
                   <div className="col-span-5">
-                    <Label htmlFor="descricao">Descrição *</Label>
+                    <Label htmlFor="descricao" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição *</Label>
                     <Input
                       id="descricao"
                       value={formData.descricao}
                       onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
                       required
                     />
                   </div>
@@ -576,22 +673,23 @@ export default function Produtos() {
 
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-4">
-                    <Label htmlFor="marca">Marca</Label>
+                    <Label htmlFor="marca" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Marca</Label>
                     <Input
                       id="marca"
                       value={formData.marca}
                       onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
                     />
                   </div>
                   <div className="col-span-4">
-                    <Label htmlFor="departamentoId">Departamento</Label>
+                    <Label htmlFor="departamentoId" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departamento</Label>
                     <select
                       id="departamentoId"
                       value={formData.departamentoId}
                       onChange={(e) =>
                         setFormData({ ...formData, departamentoId: parseInt(e.target.value) })
                       }
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="flex h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                     >
                       <option value={0}>Selecione</option>
                       {departamentos?.map((dep: Departamento) => (
@@ -602,61 +700,91 @@ export default function Produtos() {
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="unidade">Unidade</Label>
+                    <Label htmlFor="unidade" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unidade</Label>
                     <Input
                       id="unidade"
                       value={formData.unidade}
                       onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold uppercase"
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="localizacao">Localização</Label>
+                    <Label htmlFor="localizacao" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Localização</Label>
                     <Input
                       id="localizacao"
                       value={formData.localizacao}
                       onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-12 gap-6 border-t pt-4">
+                <div className="grid grid-cols-12 gap-6 border-t pt-4 border-slate-100">
                   <div className="col-span-3">
-                    <Label htmlFor="precoCusto">Preço Custo</Label>
+                    <Label htmlFor="precoCusto" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Preço Custo</Label>
                     <Input
                       id="precoCusto"
                       type="number"
                       step="0.01"
                       value={formData.precoCusto ? (formData.precoCusto / 100).toFixed(2) : ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, precoCusto: Math.round((parseFloat(e.target.value) || 0) * 100) })
-                      }
+                      onChange={(e) => {
+                        const newCusto = Math.round((parseFloat(e.target.value) || 0) * 100);
+                        const margem = formData.margemLucro || 30; // 30% padrão
+                        const newVenda = Math.round(newCusto * (1 + margem / 100));
+                        setFormData({ 
+                          ...formData, 
+                          precoCusto: newCusto,
+                          precoVenda: newVenda,
+                          margemLucro: margem
+                        });
+                      }}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
                     />
                   </div>
                   <div className="col-span-3">
-                    <Label htmlFor="margemLucro">Margem (%)</Label>
+                    <Label htmlFor="margemLucro" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Margem (%)</Label>
                     <Input
                       id="margemLucro"
                       type="number"
                       value={formData.margemLucro || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, margemLucro: parseInt(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const newMargem = parseFloat(e.target.value) || 0;
+                        const custo = formData.precoCusto || 0;
+                        const newVenda = Math.round(custo * (1 + newMargem / 100));
+                        setFormData({ 
+                          ...formData, 
+                          margemLucro: newMargem,
+                          precoVenda: newVenda
+                        });
+                      }}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
                     />
                   </div>
                   <div className="col-span-3">
-                    <Label htmlFor="precoVenda">Preço Venda</Label>
+                    <Label htmlFor="precoVenda" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Preço Venda</Label>
                     <Input
                       id="precoVenda"
                       type="number"
                       step="0.01"
                       value={formData.precoVenda ? (formData.precoVenda / 100).toFixed(2) : ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, precoVenda: Math.round((parseFloat(e.target.value) || 0) * 100) })
-                      }
+                      onChange={(e) => {
+                        const newVenda = Math.round((parseFloat(e.target.value) || 0) * 100);
+                        const custo = formData.precoCusto || 0;
+                        let newMargem = formData.margemLucro;
+                        if (custo > 0) {
+                          newMargem = Math.round(((newVenda / custo) - 1) * 100);
+                        }
+                        setFormData({ 
+                          ...formData, 
+                          precoVenda: newVenda,
+                          margemLucro: newMargem
+                        });
+                      }}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
                     />
                   </div>
                   <div className="col-span-3">
-                    <Label htmlFor="estoque">Estoque Atual</Label>
+                    <Label htmlFor="estoque" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Estoque Atual</Label>
                     <Input
                       id="estoque"
                       type="number"
@@ -664,6 +792,7 @@ export default function Produtos() {
                       onChange={(e) =>
                         setFormData({ ...formData, estoque: parseInt(e.target.value) || 0 })
                       }
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
                     />
                   </div>
                 </div>
@@ -674,32 +803,294 @@ export default function Produtos() {
                       id="ativo"
                       checked={formData.ativo}
                       onCheckedChange={(checked) => setFormData({ ...formData, ativo: !!checked })}
+                      className="rounded text-blue-600 focus:ring-blue-600"
                     />
-                    <Label htmlFor="ativo">Ativo</Label>
+                    <Label htmlFor="ativo" className="text-sm font-bold text-slate-700">Ativo</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="controlaEstoque"
                       checked={formData.controlaEstoque}
                       onCheckedChange={(checked) => setFormData({ ...formData, controlaEstoque: !!checked })}
+                      className="rounded text-blue-600 focus:ring-blue-600"
                     />
-                    <Label htmlFor="controlaEstoque">Controla Estoque</Label>
+                    <Label htmlFor="controlaEstoque" className="text-sm font-bold text-slate-700">Controla Estoque</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="permiteDesconto"
                       checked={formData.permiteDesconto}
                       onCheckedChange={(checked) => setFormData({ ...formData, permiteDesconto: !!checked })}
+                      className="rounded text-blue-600 focus:ring-blue-600"
                     />
-                    <Label htmlFor="permiteDesconto">Permite Desconto</Label>
+                    <Label htmlFor="permiteDesconto" className="text-sm font-bold text-slate-700">Permite Desconto</Label>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                {/* Ações */}
+                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpen(false)}
+                    className="h-11 px-5 font-bold rounded-xl"
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit">Salvar</Button>
+                  <Button
+                    type="submit"
+                    className="h-11 px-6 font-black rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10 flex items-center gap-2"
+                  >
+                    Salvar Produto
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog de Criar Oferta */}
+          <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
+            <DialogContent className="!max-w-4xl !w-[900px] rounded-3xl overflow-hidden border-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-white p-0">
+              <div className="bg-blue-600 px-6 py-5 text-white flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-300 animate-bounce" />
+                    Agendar Oferta Relâmpago
+                  </DialogTitle>
+                  <p className="text-white/80 text-xs mt-1">Crie um agendamento rápido com vigência automática.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleOfferSubmit} className="p-6">
+                <div className="grid grid-cols-12 gap-6">
+                  {/* Left Column: Configurações Básicas */}
+                  <div className="col-span-6 space-y-6">
+                    {/* Badge do Produto */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold">
+                        📦
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-black text-blue-600 tracking-wider">Mercadoria Selecionada</span>
+                        <h4 className="text-sm font-black text-slate-800 leading-tight">{selectedProduto?.descricao}</h4>
+                        <p className="text-xs text-slate-400 mt-1 font-mono">Código: {selectedProduto?.codigo} | Preço Atual: R$ {selectedProduto ? (selectedProduto.precoVenda / 100).toFixed(2) : "0.00"}</p>
+                      </div>
+                    </div>
+
+                    {/* Nome da Oferta */}
+                    <div className="space-y-1">
+                      <Label htmlFor="offer-nome" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome da Promoção / Oferta</Label>
+                      <Input
+                        id="offer-nome"
+                        value={offerFormData.nome}
+                        onChange={(e) => setOfferFormData({ ...offerFormData, nome: e.target.value })}
+                        placeholder="Ex: Super Desconto de Fim de Semana"
+                        className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
+                        required
+                      />
+                    </div>
+
+                    {/* Resumo do Preço / Prévia em tempo real */}
+                    {selectedProduto && (
+                      <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between text-indigo-900 mt-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-black text-indigo-600 tracking-wider">Preço com Oferta</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs line-through text-slate-400 font-mono">
+                              R$ {(selectedProduto.precoVenda / 100).toFixed(2)}
+                            </span>
+                            <span className="text-base font-black text-indigo-700 font-mono">
+                              R$ {offerFormData.tipoDesconto === "PRECO_FIXO"
+                                ? Number(offerFormData.precoOferta).toFixed(2)
+                                : ((selectedProduto.precoVenda / 100) * (1 - offerFormData.percentualDesconto / 100)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-black text-emerald-600 tracking-wider block">Economia</span>
+                          <span className="text-xs font-bold text-emerald-700 font-mono">
+                            R$ {offerFormData.tipoDesconto === "PRECO_FIXO"
+                              ? ((selectedProduto.precoVenda / 100) - Number(offerFormData.precoOferta)).toFixed(2)
+                              : ((selectedProduto.precoVenda / 100) * (offerFormData.percentualDesconto / 100)).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Preço e Período */}
+                  <div className="col-span-6 space-y-6">
+                    {/* Tipo e Valor balanceados */}
+                    <div className="space-y-4">
+                      {/* Tipo de Desconto */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Modalidade da Oferta</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setOfferFormData({ ...offerFormData, tipoDesconto: "PRECO_FIXO" })}
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-black text-sm ${
+                              offerFormData.tipoDesconto === "PRECO_FIXO"
+                                ? "border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm"
+                                : "border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            <DollarSign className="w-4 h-4" />
+                            Preço Fixo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOfferFormData({ ...offerFormData, tipoDesconto: "PERCENTUAL" })}
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-black text-sm ${
+                              offerFormData.tipoDesconto === "PERCENTUAL"
+                                ? "border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm"
+                                : "border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            <Percent className="w-4 h-4" />
+                            % Desconto
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Detalhes do Desconto */}
+                      <div className="space-y-2">
+                        {offerFormData.tipoDesconto === "PRECO_FIXO" ? (
+                          <div className="space-y-2">
+                            <Label htmlFor="offer-preco" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Novo Preço (R$)</Label>
+                            <div className="relative">
+                              <Input
+                                id="offer-preco"
+                                type="text"
+                                inputMode="decimal"
+                                value={offerFormData.precoOferta}
+                                onChange={(e) => {
+                                  // Allow only numbers, comma and dot
+                                  let val = e.target.value.replace(/[^0-9.,]/g, '');
+                                  setOfferFormData({ ...offerFormData, precoOferta: val as any });
+                                }}
+                                onBlur={(e) => {
+                                  let val = e.target.value.replace(',', '.');
+                                  if (val && !isNaN(Number(val))) {
+                                    setOfferFormData({ ...offerFormData, precoOferta: Number(val).toFixed(2) as any });
+                                  }
+                                }}
+                                placeholder="0.00"
+                                className="h-14 text-2xl text-center rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-mono font-bold"
+                                required
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="offer-percentual" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Porcentagem (%)</Label>
+                            <div className="relative">
+                              <Input
+                                id="offer-percentual"
+                                type="text"
+                                inputMode="decimal"
+                                value={offerFormData.percentualDesconto}
+                                onChange={(e) => {
+                                  let val = e.target.value.replace(/[^0-9.,]/g, '');
+                                  setOfferFormData({ ...offerFormData, percentualDesconto: val as any });
+                                }}
+                                onBlur={(e) => {
+                                  let val = e.target.value.replace(',', '.');
+                                  if (val && !isNaN(Number(val))) {
+                                    setOfferFormData({ ...offerFormData, percentualDesconto: Number(val).toFixed(2) as any });
+                                  }
+                                }}
+                                placeholder="10.00"
+                                className="h-14 text-2xl text-center rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-mono font-bold"
+                                required
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Agendamento Simples (Datas e Horas) */}
+                    <div className="border-t border-slate-100 pt-4 space-y-4">
+                      <h5 className="text-[11px] uppercase font-black text-slate-400 tracking-wider flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                        Período de Vigência
+                      </h5>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <Label htmlFor="offer-datainicio" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Data de Início</Label>
+                          <Input
+                            id="offer-datainicio"
+                            type="date"
+                            value={offerFormData.dataInicio}
+                            onChange={(e) => setOfferFormData({ ...offerFormData, dataInicio: e.target.value })}
+                            className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="offer-horainicio" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hora</Label>
+                          <div className="relative">
+                            <Input
+                              id="offer-horainicio"
+                              type="time"
+                              value={offerFormData.horaInicio}
+                              onChange={(e) => setOfferFormData({ ...offerFormData, horaInicio: e.target.value })}
+                              className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white pl-10 font-bold"
+                              required
+                            />
+                            <Clock className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="offer-datafim" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Data de Término</Label>
+                          <Input
+                            id="offer-datafim"
+                            type="date"
+                            value={offerFormData.dataFim}
+                            onChange={(e) => setOfferFormData({ ...offerFormData, dataFim: e.target.value })}
+                            className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="offer-horafim" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hora</Label>
+                          <div className="relative">
+                            <Input
+                              id="offer-horafim"
+                              type="time"
+                              value={offerFormData.horaFim}
+                              onChange={(e) => setOfferFormData({ ...offerFormData, horaFim: e.target.value })}
+                              className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white pl-10 font-bold"
+                              required
+                            />
+                            <Clock className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOfferOpen(false)}
+                    className="h-11 px-5 font-bold rounded-xl"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-11 px-6 font-black rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10 flex items-center gap-2"
+                    disabled={createOffer.isPending}
+                  >
+                    {createOffer.isPending ? "Agendando..." : "Confirmar e Agendar"}
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -733,12 +1124,24 @@ export default function Produtos() {
           >
             Excluir
           </Button>
+
           <Button 
             className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
             variant="ghost"
-            onClick={() => window.history.back()}
+            onClick={() => setLocation("/vendas/ofertas")}
+            title="Ir para a Gestão Geral de Ofertas"
           >
-            Sair
+            Gestão Ofertas
+          </Button>
+
+          <Button 
+            className="w-full justify-start bg-gray-100 text-black hover:bg-blue-600 hover:text-white" 
+            variant="ghost"
+            onClick={handleOpenOfferModal}
+            disabled={!selectedProduto}
+            title={!selectedProduto ? "Selecione uma mercadoria para criar oferta" : "Agendar Oferta"}
+          >
+            Criar Oferta
           </Button>
         </div>
       </div>

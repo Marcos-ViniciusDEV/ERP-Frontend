@@ -309,7 +309,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={vendasPorDia}>
+                <BarChart data={vendasPorDia}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="dia" />
                   <YAxis />
@@ -317,13 +317,13 @@ export default function Home() {
                     formatter={(value: number) => `R$ ${value.toFixed(2)}`}
                   />
                   <Legend />
-                  <Line
-                    type="monotone"
+                  <Bar
                     dataKey="valor"
-                    stroke="#10b981"
+                    fill="#3b82f6"
                     name="Valor (R$)"
+                    radius={[4, 4, 0, 0]}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
