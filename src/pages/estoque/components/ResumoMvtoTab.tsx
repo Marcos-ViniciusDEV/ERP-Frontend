@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
   Table,
@@ -9,12 +9,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format } from "date-fns";
+import { endOfMonth, format, isWithinInterval, startOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ResumoMvtoTabProps {
   produtoId: number | undefined;
+}
+
+interface VendaProduto {
+  id: number;
+  numeroVenda: string;
+  dataVenda: string | Date;
+  quantidade: number;
+  precoUnitario: number;
+  valorTotal: number;
 }
 
 export function ResumoMvtoTab({ produtoId }: ResumoMvtoTabProps) {
@@ -30,6 +39,48 @@ export function ResumoMvtoTab({ produtoId }: ResumoMvtoTabProps) {
     enabled: !!produtoId,
   });
 
+  const { data: vendas, isLoading: isLoadingVendas } = useQuery<VendaProduto[]>({
+    queryKey: ["historico-vendas", produtoId],
+    queryFn: async () => {
+      if (!produtoId) return [];
+      const { data } = await api.get(`/produtos/${produtoId}/historico-vendas`);
+      return data;
+    },
+    enabled: !!produtoId,
+  });
+
+  const resumoVendasUltimosTresMeses = useMemo(() => {
+    const hoje = new Date();
+
+    return Array.from({ length: 3 }, (_, index) => {
+      const mesReferencia = subMonths(hoje, 2 - index);
+      const inicio = startOfMonth(mesReferencia);
+      const fim = index === 2 ? hoje : endOfMonth(mesReferencia);
+      const vendasDoMes = (vendas || []).filter((venda) =>
+        isWithinInterval(new Date(venda.dataVenda), { start: inicio, end: fim })
+      );
+
+      return {
+        label: format(mesReferencia, "MMM/yyyy", { locale: ptBR }),
+        periodo: `${format(inicio, "dd/MM/yyyy")} - ${format(fim, "dd/MM/yyyy")}`,
+        quantidade: vendasDoMes.reduce((total, venda) => total + Number(venda.quantidade || 0), 0),
+        valor: vendasDoMes.reduce((total, venda) => total + Number(venda.valorTotal || 0), 0),
+      };
+    });
+  }, [vendas]);
+
+  const totalVendasUltimosTresMeses = useMemo(
+    () =>
+      resumoVendasUltimosTresMeses.reduce(
+        (total, mes) => ({
+          quantidade: total.quantidade + mes.quantidade,
+          valor: total.valor + mes.valor,
+        }),
+        { quantidade: 0, valor: 0 }
+      ),
+    [resumoVendasUltimosTresMeses]
+  );
+
   if (!produtoId) {
     return <div className="p-8 text-center text-muted-foreground text-sm">Selecione um produto para ver o resumo de movimentação.</div>;
   }
@@ -40,6 +91,42 @@ export function ResumoMvtoTab({ produtoId }: ResumoMvtoTabProps) {
 
   return (
     <>
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        <div className="rounded-md border bg-muted/30 p-3">
+          <p className="text-[10px] font-bold uppercase text-muted-foreground">Venda Total Últimos 3 Meses</p>
+          <p className="mt-2 font-mono text-xl font-bold text-blue-600">
+            {(totalVendasUltimosTresMeses.valor / 100).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Qtd: <span className="font-mono font-bold">{totalVendasUltimosTresMeses.quantidade}</span>
+          </p>
+        </div>
+
+        {resumoVendasUltimosTresMeses.map((mes) => (
+          <div key={mes.periodo} className="rounded-md border bg-background p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs font-semibold capitalize">{mes.label}</p>
+              <p className="text-[10px] text-muted-foreground">{mes.periodo}</p>
+            </div>
+            <p className="mt-2 font-mono text-lg font-bold">
+              {(mes.valor / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Qtd vendida: <span className="font-mono font-bold">{mes.quantidade}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {isLoadingVendas && (
+        <div className="mb-3 rounded-md border bg-muted/20 p-2 text-center text-xs text-muted-foreground">
+          Carregando vendas dos últimos 3 meses...
+        </div>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>

@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, Send, Tag, Zap, Calendar, Clock, Percent, DollarSign, Package } from "lucide-react";
+import { Search, RefreshCw, Send, Zap, Calendar, Clock, Percent, DollarSign, Package } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +27,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { hasPermission } from "@/_core/utils/permissions";
 import { ResumoMvtoTab } from "./components/ResumoMvtoTab";
 import { HistoricoTab } from "./components/HistoricoTab";
+import { ProdutosEstoqueTab } from "./components/ProdutosEstoqueTab";
+import { UnidadesTab } from "./components/UnidadesTab";
 import { Produto } from "@/shared/schema";
 import { useLocation } from "wouter";
 
@@ -402,6 +403,7 @@ export default function Produtos() {
               <TabsTrigger value="unidades">Unidades</TabsTrigger>
               <TabsTrigger value="resumo">Resumo Mvto</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
+              <TabsTrigger value="produtos">Produtos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="cadastro" className="flex-1 flex flex-col mt-2 data-[state=active]:flex">
@@ -513,8 +515,8 @@ export default function Produtos() {
               </div>
             </TabsContent>
 
-            <TabsContent value="unidades" className="flex-1 p-4 border rounded-md mt-2">
-              <div className="text-center text-muted-foreground">Funcionalidade em desenvolvimento</div>
+            <TabsContent value="unidades" className="flex-1 mt-2 overflow-auto">
+              <UnidadesTab produto={selectedProduto} onProdutoChange={setSelectedProduto} />
             </TabsContent>
 
             <TabsContent value="resumo" className="flex-1 mt-2 overflow-auto">
@@ -523,6 +525,10 @@ export default function Produtos() {
 
             <TabsContent value="historico" className="flex-1 mt-2 overflow-auto">
               <HistoricoTab produtoId={selectedProduto?.id} />
+            </TabsContent>
+
+            <TabsContent value="produtos" className="flex-1 mt-2 overflow-auto">
+              <ProdutosEstoqueTab produtos={produtos} isLoadingProdutos={isLoading} />
             </TabsContent>
           </Tabs>
 

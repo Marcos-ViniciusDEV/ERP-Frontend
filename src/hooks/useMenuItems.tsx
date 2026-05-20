@@ -42,6 +42,7 @@ export function useMenuItems() {
       label: "Movimentos",
       items: [
         { label: "Vendas", path: "/vendas/consultar", permission: "vendas_consultar" },
+        { label: "Trocas e Devoluções", path: "/vendas/devolucoes", permission: "vendas_devolucoes" },
         { label: "Entrada de Mercadoria", path: "/estoque/entrada", permission: "estoque_entrada" },
         { label: "Conferência de Mercadoria", path: "/estoque/conferencia", permission: "estoque_conferencia" },
         { label: "Baixas Manuais", path: "/estoque/baixas", permission: "estoque_baixas" },

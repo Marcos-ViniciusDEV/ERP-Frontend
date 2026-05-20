@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -362,7 +363,8 @@ export default function Producao() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full">
+    <DashboardLayout>
+      <div className="flex h-[calc(100vh-5rem)] flex-col rounded-md border bg-background p-2">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full justify-start bg-white border-b rounded-none px-0 h-auto">
           <TabsTrigger value="insumos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 px-6 py-3 font-bold gap-2">
@@ -819,6 +821,7 @@ export default function Producao() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
