@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { api } from "@/lib/api";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -12,6 +12,8 @@ interface Produto {
   descricao: string;
   codigoBarras?: string;
   precoVenda: number;
+  estoque?: number;
+  controlaEstoque?: boolean;
 }
 
 export default function PdvOnline() {
@@ -78,7 +80,7 @@ export default function PdvOnline() {
       }
       if (e.key === "F12") {
         e.preventDefault();
-        if (items.length > 0) setShowPayment(true);
+        if (items.length > 0) handleOpenPayment();
       }
       if (e.key === "F9") {
         e.preventDefault();
@@ -108,6 +110,11 @@ export default function PdvOnline() {
     searchInputRef.current?.focus();
   };
 
+  const handleOpenPayment = () => {
+    if (!items.length) return;
+    setShowPayment(true);
+  };
+
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       const match = search.match(/^(\d+)[xX]$/);
@@ -126,7 +133,7 @@ export default function PdvOnline() {
       } else {
         const exact = products.find(p => p.codigoBarras === search || p.id.toString() === search);
         if (exact) handleSelectProduct(exact);
-        else if (!/^\d+[xX]$/.test(search)) toast.error("Produto não encontrado");
+        else if (!/^\d+[xX]$/.test(search)) toast.error("Produto nÃ£o encontrado");
       }
     }
   };
@@ -145,7 +152,7 @@ export default function PdvOnline() {
       setShowAuth(false);
       authAction();
     } catch (e) {
-      toast.error("Senha inválida ou sem permissão");
+      toast.error("Senha invÃ¡lida ou sem permissÃ£o");
     }
   };
 
@@ -215,10 +222,10 @@ export default function PdvOnline() {
 
           {/* Carrinho */}
           <div className="cart">
-            <div className="cart-hdr"><h2>🛒 Itens da Venda ({items.length})</h2></div>
+            <div className="cart-hdr"><h2>ðŸ›’ Itens da Venda ({items.length})</h2></div>
             <div className="cart-body">
               {items.length === 0 ? (
-                <div className="cart-empty"><div className="icon">🛍️</div>Carrinho vazio</div>
+                <div className="cart-empty"><div className="icon">ðŸ›ï¸</div>Carrinho vazio</div>
               ) : (
                 <table>
                   <thead><tr><th>#</th><th>Produto</th><th>Qtd</th><th>Unit</th><th>Total</th></tr></thead>
@@ -257,9 +264,9 @@ export default function PdvOnline() {
           </div>
 
           <div className="icard" style={{flex: 1}}>
-            <span className="lbl">Ações Rápidas</span>
+            <span className="lbl">AÃ§Ãµes RÃ¡pidas</span>
             <div className="actions">
-              <button className="act-btn primary" onClick={() => items.length && setShowPayment(true)}>
+              <button className="act-btn primary" onClick={handleOpenPayment}>
                 <span className="key">F12</span><span>Finalizar Venda</span>
               </button>
               <button className="act-btn" onClick={handleDiscountRequest}>
@@ -269,7 +276,7 @@ export default function PdvOnline() {
                 <span className="key">F7</span><span>Cancelar Cupom</span>
               </button>
               <button className="act-btn" onClick={() => { if(items.length) requireAuth(() => removeItem(items.length-1)) }}>
-                <span className="key">DEL</span><span>Remover Último Item</span>
+                <span className="key">DEL</span><span>Remover Ãšltimo Item</span>
               </button>
             </div>
           </div>
@@ -278,7 +285,7 @@ export default function PdvOnline() {
             <span className="lbl">Info do Caixa</span>
             <div style={{display:'flex', justifyContent:'space-between'}}>
               <span style={{color:'var(--pdv-text2)'}}>Status</span>
-              <span style={{color:'var(--pdv-success)', fontWeight:600}}>● Online</span>
+              <span style={{color:'var(--pdv-success)', fontWeight:600}}>â— Online</span>
             </div>
             <div style={{display:'flex', justifyContent:'space-between', marginTop: 8}}>
               <span style={{color:'var(--pdv-text2)'}}>Data</span>
@@ -292,8 +299,8 @@ export default function PdvOnline() {
       {showAuth && (
         <div className="modal-bg">
           <div className="modal-box">
-            <h2>Autorização Requerida</h2>
-            <p style={{marginBottom: 16, color: 'var(--pdv-text2)'}}>Digite a senha do seu usuário para autorizar:</p>
+            <h2>AutorizaÃ§Ã£o Requerida</h2>
+            <p style={{marginBottom: 16, color: 'var(--pdv-text2)'}}>Digite a senha do seu usuÃ¡rio para autorizar:</p>
             <input 
               type="password" 
               value={authPassword} 
@@ -339,6 +346,16 @@ export default function PdvOnline() {
   );
 }
 
+const ONLINE_PAYMENT_METHODS = [
+  { id: "dinheiro", label: "DINHEIRO", shortcut: "F1" },
+  { id: "debito", label: "DEBITO", shortcut: "F2" },
+  { id: "credito", label: "CREDITO", shortcut: "F3" },
+  { id: "pix", label: "PIX", shortcut: "F4" },
+];
+
+const getOnlinePaymentLabel = (method: string) =>
+  ONLINE_PAYMENT_METHODS.find((item) => item.id === method)?.label || method.toUpperCase();
+
 // Payment Modal Sub-Component
 function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const { items, getNetTotal, getDiscount, getTotal } = usePdvOnlineStore();
@@ -357,18 +374,29 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
 
   useEffect(() => {
     const hk = (e: KeyboardEvent) => {
+      const shortcutMethod = ONLINE_PAYMENT_METHODS.find((method) => method.shortcut === e.key.toUpperCase());
+      if (shortcutMethod) {
+        e.preventDefault();
+        setSelectedMethod(shortcutMethod.id);
+        setTimeout(() => {
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        }, 0);
+        return;
+      }
+
       if (e.key === 'Escape') onClose();
       if (e.key === 'F12' && remaining <= 0) handleFinalize();
     };
     window.addEventListener('keydown', hk);
     return () => window.removeEventListener('keydown', hk);
-  }, [remaining, payments]);
+  }, [remaining, payments, selectedMethod]);
 
   const addPayment = () => {
     const val = Math.round(parseFloat(inputVal.replace(',','.')) * 100);
     if (!isNaN(val) && val > 0) {
       if (selectedMethod !== "dinheiro" && val > remaining) {
-        toast.error("Só é permitido troco em dinheiro");
+        toast.error("SÃ³ Ã© permitido troco em dinheiro");
         return;
       }
       setPayments([...payments, { method: selectedMethod, amount: val }]);
@@ -378,7 +406,8 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
   };
 
   const handleFinalize = async () => {
-    if (remaining > 0) return toast.error("Ainda há valor pendente");
+    if (payments.length === 0) return toast.error("Adicione uma forma de pagamento");
+    if (remaining > 0) return toast.error("Ainda hÃ¡ valor pendente");
     try {
       const payload = {
         formaPagamento: payments[0].method,
@@ -422,7 +451,7 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
               
               <div class="divider"></div>
               
-              <div class="text-center bold">CUPOM FISCAL ELETRÔNICO</div>
+              <div class="text-center bold">CUPOM FISCAL ELETRÃ”NICO</div>
               <div class="text-center">CCF: ${sale.ccf || "000000"} COO: ${sale.coo || "000000"}</div>
               
               <div class="divider"></div>
@@ -449,10 +478,7 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
               <div class="divider"></div>
               
               ${payments.map(p => {
-                const methodLabel = p.method === "dinheiro" ? "DINHEIRO" 
-                                  : p.method === "cartao" ? "CARTÃO"
-                                  : p.method === "pix" ? "PIX"
-                                  : p.method.toUpperCase();
+                const methodLabel = getOnlinePaymentLabel(p.method);
                 return `
                   <div class="text-right">
                     ${methodLabel} R$ ${(p.amount / 100).toFixed(2)}
@@ -463,7 +489,7 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
               <div class="text-right">TROCO R$ ${(change / 100).toFixed(2)}</div>
               
               <div class="divider"></div>
-              <div class="text-center">OBRIGADO PELA PREFERÊNCIA!</div>
+              <div class="text-center">OBRIGADO PELA PREFERÃŠNCIA!</div>
               <script>window.print();</script>
             </body>
           </html>
@@ -472,8 +498,8 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
         w.document.close();
       }
       onSuccess();
-    } catch (e) {
-      toast.error("Erro ao finalizar venda");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Erro ao finalizar venda");
     }
   };
 
@@ -488,13 +514,15 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
             </div>
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {["dinheiro", "cartao", "pix"].map(m => (
+            {ONLINE_PAYMENT_METHODS.map((method) => (
               <button 
-                key={m} 
-                className={`pay-method ${selectedMethod === m ? 'active' : ''}`}
-                onClick={() => { setSelectedMethod(m); inputRef.current?.focus(); }}
+                key={method.id}
+                className={`pay-method ${selectedMethod === method.id ? 'active' : ''}`}
+                onClick={() => { setSelectedMethod(method.id); inputRef.current?.focus(); }}
               >
-                {m.toUpperCase()} {selectedMethod === m && <span style={{marginLeft:'auto', fontSize:12}}>Selecionado</span>}
+                <span>{method.shortcut}</span>
+                <span style={{ marginLeft: 8 }}>{method.label}</span>
+                {selectedMethod === method.id && <span style={{marginLeft:'auto', fontSize:12}}>Selecionado</span>}
               </button>
             ))}
           </div>
@@ -516,7 +544,7 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
           <div style={{flex: 1, marginTop: 16}}>
             {payments.map((p, i) => (
               <div key={i} style={{display:'flex', justifyContent:'space-between', padding: 8, borderBottom: '1px solid var(--pdv-border)'}}>
-                <span>{p.method.toUpperCase()}</span>
+                <span>{getOnlinePaymentLabel(p.method)}</span>
                 <span>R$ {(p.amount/100).toFixed(2)}</span>
               </div>
             ))}
@@ -542,3 +570,4 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
     </div>
   );
 }
+

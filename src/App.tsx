@@ -13,7 +13,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Produtos from "./pages/estoque/Produtos";
+import ProdutosSemVenda from "./pages/estoque/ProdutosSemVenda";
 import Clientes from "./pages/cadastros/Clientes";
+import Funcionarios from "./pages/cadastros/Funcionarios";
 import Usuarios from "./pages/cadastros/Usuarios";
 import Departamentos from "./pages/cadastros/Departamentos";
 import Fornecedores from "./pages/compras/Fornecedores";
@@ -128,8 +130,10 @@ function Router() {
       {/* Cadastros */}
       <PermissionRoute path={"/cadastros/clientes"} component={Clientes} permission="cadastros_clientes" />
       <PermissionRoute path={"/cadastros/usuarios"} component={Usuarios} permission="cadastros_usuarios" />
+      <PermissionRoute path={"/cadastros/funcionarios"} component={Funcionarios} permission="cadastros_usuarios" />
       <PermissionRoute path="/cadastros/departamentos" component={Departamentos} permission="cadastros_departamentos" />
       <PermissionRoute path={"/estoque/produtos"} component={Produtos} permission="estoque_produtos" />
+      <PermissionRoute path={"/estoque/produtos-sem-venda"} component={ProdutosSemVenda} permission="relatorios_ver" />
       <PermissionRoute path={"/compras/fornecedores"} component={Fornecedores} permission="compras_fornecedores" />
       <PermissionRoute path={"/financeiro/pagar"} component={ContasPagar} permission="financeiro_pagar" />
       <PermissionRoute path="/estoque/entrada" component={EntradaMercadoria} permission="estoque_entrada" />

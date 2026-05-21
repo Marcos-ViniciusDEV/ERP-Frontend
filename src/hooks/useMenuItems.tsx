@@ -36,6 +36,7 @@ export function useMenuItems() {
         { label: "Produtos", path: "/estoque/produtos", permission: "estoque_produtos" },
         { label: "Fornecedores", path: "/compras/fornecedores", permission: "compras_fornecedores" },
         { label: "Usuários", path: "/cadastros/usuarios", permission: "cadastros_usuarios" },
+        { label: "Funcionários", path: "/cadastros/funcionarios", permission: "cadastros_usuarios" },
       ],
     },
     {
@@ -48,6 +49,7 @@ export function useMenuItems() {
         { label: "Baixas Manuais", path: "/estoque/baixas", permission: "estoque_baixas" },
         { label: "Movimentação de Caixa", path: "/financeiro/caixa", permission: "financeiro_caixa" },
         { label: "Pedidos de Compra", path: "/compras/pedidos", permission: "compras_pedidos" },
+        { label: "Produtos Sem Venda", path: "/estoque/produtos-sem-venda", permission: "relatorios_ver" },
       ],
     },
     {

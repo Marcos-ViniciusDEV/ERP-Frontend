@@ -110,6 +110,22 @@ export interface ContaReceber {
   updatedAt: string | Date;
 }
 
+export interface Funcionario {
+  id: number;
+  nome: string;
+  cargo: string;
+  salario: number;
+  dataAdmissao: string | Date;
+  dataDesligamento: string | Date | null;
+  telefone: string | null;
+  email: string | null;
+  ativo: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export type InsertFuncionario = Partial<Funcionario>;
+
 // Add other types as needed
 export type InsertUser = Partial<User>;
 export type InsertProduto = Partial<Produto>;
