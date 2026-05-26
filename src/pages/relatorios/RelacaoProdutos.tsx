@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -21,273 +21,246 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Printer, Download } from "lucide-react";
+import { Download, FileText, Loader2, Printer, Search } from "lucide-react";
 import { toast } from "sonner";
-import { Produto } from "@/shared/schema";
+
+type ReportRow = {
+  id: number;
+  codigo: string;
+  codigoBarras?: string | null;
+  descricao: string;
+  marca?: string | null;
+  departamentoNome?: string | null;
+  unidade: string;
+  precoVenda: number;
+  estoque: number;
+  ativo: boolean;
+};
+
+type ReportResponse = {
+  rows: ReportRow[];
+  page: number;
+  pageSize: number;
+  totalRows: number;
+  totalPages: number;
+};
+
+const reportKey = "relacao-produtos";
+const defaultColumns = [
+  "codigo",
+  "descricao",
+  "marca",
+  "departamentoNome",
+  "unidade",
+  "precoVenda",
+  "estoque",
+  "ativo",
+];
 
 export default function RelacaoProdutos() {
-  const [filtroMarca, setFiltroMarca] = useState("todos");
   const [busca, setBusca] = useState("");
+  const [marca, setMarca] = useState("");
+  const [ativo, setAtivo] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const { data: produtos } = useQuery<Produto[]>({
-    queryKey: ["produtos"],
+  const filters = useMemo(() => {
+    const nextFilters: Array<{ field: string; operator: string; value: unknown }> = [];
+
+    if (busca.trim()) {
+      nextFilters.push({ field: "search", operator: "contains", value: busca.trim() });
+    }
+
+    if (marca.trim()) {
+      nextFilters.push({ field: "marca", operator: "contains", value: marca.trim() });
+    }
+
+    if (ativo !== "todos") {
+      nextFilters.push({ field: "ativo", operator: "equals", value: ativo === "ativos" });
+    }
+
+    return nextFilters;
+  }, [ativo, busca, marca]);
+
+  const { data, isLoading, refetch } = useQuery<ReportResponse>({
+    queryKey: ["report", reportKey, filters, page],
     queryFn: async () => {
-      const { data } = await api.get("/produtos");
-      return data;
-    }
+      const response = await api.post(`/reports/${reportKey}/query`, {
+        filters,
+        columns: defaultColumns,
+        sort: [{ field: "codigo", direction: "asc" }],
+        page,
+        pageSize: 50,
+      });
+      return response.data.data;
+    },
   });
 
-  const produtosFiltrados = produtos?.filter(p => {
-    if (filtroMarca !== "todos" && p.marca !== filtroMarca) return false;
+  const exportarExcel = async () => {
+    setIsExporting(true);
 
-    if (busca) {
-      const buscaLower = busca.toLowerCase();
-      return (
-        p.codigo.toLowerCase().includes(buscaLower) ||
-        p.descricao.toLowerCase().includes(buscaLower) ||
-        (p.marca && p.marca.toLowerCase().includes(buscaLower))
-      );
+    try {
+      const createResponse = await api.post(`/reports/${reportKey}/export-jobs`, {
+        filters,
+        columns: defaultColumns,
+        sort: [{ field: "codigo", direction: "asc" }],
+        maxRows: 100000,
+      });
+
+      const jobId = createResponse.data.data.id;
+      toast.info("Exportacao iniciada. Preparando arquivo Excel...");
+
+      const finishedJob = await waitForExportJob(jobId);
+      if (finishedJob.status !== "DONE") {
+        throw new Error(finishedJob.errorMessage || "Nao foi possivel gerar o Excel");
+      }
+
+      const downloadResponse = await api.get(`/reports/export-jobs/${jobId}/download`, {
+        responseType: "blob",
+      });
+
+      const url = URL.createObjectURL(downloadResponse.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = finishedJob.fileName || `relacao-produtos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("Excel gerado com sucesso");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao exportar Excel");
+    } finally {
+      setIsExporting(false);
     }
-
-    return true;
-  });
-
-  const marcas = Array.from(
-    new Set(produtos?.map(p => p.marca).filter(Boolean))
-  );
+  };
 
   const imprimirRelatorio = () => {
-    if (!produtosFiltrados || produtosFiltrados.length === 0) {
-      toast.error("Nenhum produto para imprimir");
-      return;
-    }
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast.error("Não foi possível abrir janela de impressão");
-      return;
-    }
-
-    let html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Relação de Produtos</title>
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm;
-            }
-            body {
-              margin: 0;
-              padding: 20px;
-              font-family: Arial, sans-serif;
-              font-size: 10pt;
-            }
-            h1 {
-              font-size: 16pt;
-              margin-bottom: 5px;
-            }
-            .info {
-              font-size: 9pt;
-              color: #666;
-              margin-bottom: 20px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 20px;
-            }
-            th, td {
-              border: 1px solid #ddd;
-              padding: 6px;
-              text-align: left;
-            }
-            th {
-              background-color: #f5f5f5;
-              font-weight: bold;
-            }
-            .text-right {
-              text-align: right;
-            }
-            .text-center {
-              text-align: center;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Relação de Produtos</h1>
-          <div class="info">
-            Data: ${new Date().toLocaleString("pt-BR")}<br>
-            Filtros: ${filtroMarca !== "todos" ? `Marca: ${filtroMarca}` : "Todos"}
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Descrição</th>
-                <th>Marca</th>
-                <th class="text-center">Unid.</th>
-                <th class="text-right">Preço Venda</th>
-                <th class="text-right">Estoque</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
-
-    produtosFiltrados.forEach(produto => {
-      html += `
-        <tr>
-          <td>${produto.codigo}</td>
-          <td>${produto.descricao}</td>
-          <td>${produto.marca || "-"}</td>
-          <td class="text-center">${produto.unidade || "UN"}</td>
-          <td class="text-right">R$ ${(produto.precoVenda / 100).toFixed(2)}</td>
-          <td class="text-right">${produto.estoque}</td>
-        </tr>
-      `;
-    });
-
-    html += `
-            </tbody>
-          </table>
-
-          <div class="info">
-            Total de Produtos: ${produtosFiltrados.length}
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
+    toast.info("Use Exportar Excel para relatorios completos. A impressao sera migrada para o novo motor em uma proxima etapa.");
   };
 
-  const exportarCSV = () => {
-    if (!produtosFiltrados || produtosFiltrados.length === 0) {
-      toast.error("Nenhum produto para exportar");
-      return;
-    }
-
-    let csv = "Código;Descrição;Marca;Unidade;Preço Venda;Estoque\n";
-
-    produtosFiltrados.forEach(produto => {
-      csv += `${produto.codigo};${produto.descricao};${produto.marca || ""};${produto.unidade || "UN"};${(produto.precoVenda / 100).toFixed(2)};${produto.estoque}\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `relacao_produtos_${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
-    toast.success("Relatório exportado");
-  };
+  const totalPages = data?.totalPages ?? 1;
+  const rows = data?.rows ?? [];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Relação de Produtos</h1>
+            <h1 className="text-2xl font-bold">Relacao de Produtos</h1>
             <p className="text-sm text-muted-foreground">
-              Listagem geral de produtos cadastrados
+              Listagem paginada com filtros no servidor e exportacao Excel
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportarCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+            <Button variant="outline" onClick={exportarExcel} disabled={isExporting}>
+              {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Exportar Excel
             </Button>
-            <Button onClick={imprimirRelatorio}>
+            <Button onClick={imprimirRelatorio} variant="secondary">
               <Printer className="w-4 h-4 mr-2" />
-              Imprimir / PDF
+              Imprimir
             </Button>
           </div>
         </div>
 
-        {/* Filtros */}
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_180px_auto] gap-4 items-end">
               <div className="space-y-2">
                 <Label>Buscar</Label>
                 <Input
-                  placeholder="Código ou descrição..."
+                  placeholder="Codigo, descricao ou marca..."
                   value={busca}
-                  onChange={e => setBusca(e.target.value)}
+                  onChange={(event) => {
+                    setBusca(event.target.value);
+                    setPage(1);
+                  }}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Marca</Label>
-                <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                <Input
+                  placeholder="Filtrar marca..."
+                  value={marca}
+                  onChange={(event) => {
+                    setMarca(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={ativo}
+                  onValueChange={(value) => {
+                    setAtivo(value);
+                    setPage(1);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todas</SelectItem>
-                    {marcas.map(marca => (
-                      <SelectItem key={marca || ""} value={marca || ""}>
-                        {marca}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="inativos">Inativos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              <Button variant="outline" onClick={() => refetch()}>
+                <Search className="w-4 h-4 mr-2" />
+                Aplicar
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tabela de Produtos */}
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Descrição</TableHead>
+                    <TableHead>Codigo</TableHead>
+                    <TableHead>Descricao</TableHead>
                     <TableHead>Marca</TableHead>
+                    <TableHead>Departamento</TableHead>
                     <TableHead className="text-center">Unid.</TableHead>
-                    <TableHead className="text-right">Preço Venda</TableHead>
+                    <TableHead className="text-right">Preco Venda</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {produtosFiltrados && produtosFiltrados.length > 0 ? (
-                    produtosFiltrados.map(produto => (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin opacity-60" />
+                        Carregando produtos...
+                      </TableCell>
+                    </TableRow>
+                  ) : rows.length > 0 ? (
+                    rows.map((produto) => (
                       <TableRow key={produto.id}>
-                        <TableCell className="font-mono text-sm">
-                          {produto.codigo}
-                        </TableCell>
+                        <TableCell className="font-mono text-sm">{produto.codigo}</TableCell>
                         <TableCell>{produto.descricao}</TableCell>
                         <TableCell>{produto.marca || "-"}</TableCell>
+                        <TableCell>{produto.departamentoNome || "-"}</TableCell>
                         <TableCell className="text-center">{produto.unidade || "UN"}</TableCell>
-                        <TableCell className="text-right">
-                          R$ {(produto.precoVenda / 100).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {produto.estoque}
-                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(produto.precoVenda)}</TableCell>
+                        <TableCell className="text-right">{produto.estoque}</TableCell>
+                        <TableCell>{produto.ativo ? "Ativo" : "Inativo"}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-12 text-muted-foreground"
-                      >
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         <p>Nenhum produto encontrado</p>
                       </TableCell>
@@ -296,9 +269,48 @@ export default function RelacaoProdutos() {
                 </TableBody>
               </Table>
             </div>
+
+            <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
+              <span className="text-muted-foreground">
+                {data?.totalRows ?? 0} produtos encontrados
+              </span>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+                  Anterior
+                </Button>
+                <span>
+                  Pagina {page} de {totalPages}
+                </span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+                  Proxima
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
     </DashboardLayout>
   );
+}
+
+async function waitForExportJob(jobId: string) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const response = await api.get(`/reports/export-jobs/${jobId}`);
+    const job = response.data.data;
+
+    if (job.status === "DONE" || job.status === "FAILED" || job.status === "EXPIRED") {
+      return job;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error("Tempo limite ao gerar Excel");
+}
+
+function formatCurrency(value: number) {
+  return (value / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }

@@ -137,6 +137,17 @@ export default function Produtos() {
     custoContabil: 0,
     custoOperacional: 0,
     custoFiscal: 0,
+    ncm: "",
+    cest: "",
+    origem: 0,
+    cstIcms: "",
+    csosnIcms: "102",
+    cfopPadraoVenda: "5102",
+    aliquotaIcms: 0,
+    aliquotaPis: 0,
+    aliquotaCofins: 0,
+    pisCst: "49",
+    cofinsCst: "49",
     margemLucro: 30,
     margemLucro2: 0,
     margemLucro3: 0,
@@ -170,6 +181,17 @@ export default function Produtos() {
       custoContabil: 0,
       custoOperacional: 0,
       custoFiscal: 0,
+      ncm: "",
+      cest: "",
+      origem: 0,
+      cstIcms: "",
+      csosnIcms: "102",
+      cfopPadraoVenda: "5102",
+      aliquotaIcms: 0,
+      aliquotaPis: 0,
+      aliquotaCofins: 0,
+      pisCst: "49",
+      cofinsCst: "49",
       margemLucro: 30,
       margemLucro2: 0,
       margemLucro3: 0,
@@ -328,6 +350,17 @@ export default function Produtos() {
       custoContabil: produto.custoContabil || 0,
       custoOperacional: produto.custoOperacional || 0,
       custoFiscal: produto.custoFiscal || 0,
+      ncm: produto.ncm || "",
+      cest: produto.cest || "",
+      origem: produto.origem ?? 0,
+      cstIcms: produto.cstIcms || "",
+      csosnIcms: produto.csosnIcms || "",
+      cfopPadraoVenda: produto.cfopPadraoVenda || "",
+      aliquotaIcms: produto.aliquotaIcms || 0,
+      aliquotaPis: produto.aliquotaPis || 0,
+      aliquotaCofins: produto.aliquotaCofins || 0,
+      pisCst: produto.pisCst || "",
+      cofinsCst: produto.cofinsCst || "",
       margemLucro: produto.margemLucro || 30,
       margemLucro2: produto.margemLucro2 || 0,
       margemLucro3: produto.margemLucro3 || 0,
@@ -633,7 +666,7 @@ export default function Produtos() {
         {/* Sidebar Direita */}
         <div className="w-32 flex flex-col gap-2">
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="!max-w-4xl !w-[900px] rounded-3xl overflow-hidden border-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-white p-0">
+            <DialogContent className="!max-w-4xl !w-[900px] max-h-[92vh] overflow-y-auto rounded-3xl border-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-white p-0">
               <div className="bg-blue-600 px-6 py-5 text-white flex items-center justify-between">
                 <div>
                   <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2">
@@ -721,6 +754,133 @@ export default function Produtos() {
                       value={formData.localizacao}
                       onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
                       className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-6 border-t pt-4 border-slate-100">
+                  <div className="col-span-12">
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Dados Fiscais</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="ncm" className="text-xs font-bold text-slate-500 uppercase tracking-wider">NCM</Label>
+                    <Input
+                      id="ncm"
+                      value={formData.ncm}
+                      maxLength={8}
+                      onChange={(e) => setFormData({ ...formData, ncm: e.target.value.replace(/\D/g, "").slice(0, 8) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="00000000"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="cest" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CEST</Label>
+                    <Input
+                      id="cest"
+                      value={formData.cest}
+                      maxLength={7}
+                      onChange={(e) => setFormData({ ...formData, cest: e.target.value.replace(/\D/g, "").slice(0, 7) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="0000000"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="origem" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Origem</Label>
+                    <Input
+                      id="origem"
+                      type="number"
+                      min={0}
+                      max={8}
+                      value={formData.origem}
+                      onChange={(e) => setFormData({ ...formData, origem: Math.min(8, Math.max(0, parseInt(e.target.value) || 0)) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="cfopPadraoVenda" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CFOP Venda</Label>
+                    <Input
+                      id="cfopPadraoVenda"
+                      value={formData.cfopPadraoVenda}
+                      maxLength={4}
+                      onChange={(e) => setFormData({ ...formData, cfopPadraoVenda: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="5102"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="csosnIcms" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CSOSN</Label>
+                    <Input
+                      id="csosnIcms"
+                      value={formData.csosnIcms}
+                      maxLength={4}
+                      onChange={(e) => setFormData({ ...formData, csosnIcms: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="102"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="cstIcms" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CST ICMS</Label>
+                    <Input
+                      id="cstIcms"
+                      value={formData.cstIcms}
+                      maxLength={4}
+                      onChange={(e) => setFormData({ ...formData, cstIcms: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="pisCst" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CST PIS</Label>
+                    <Input
+                      id="pisCst"
+                      value={formData.pisCst}
+                      maxLength={2}
+                      onChange={(e) => setFormData({ ...formData, pisCst: e.target.value.replace(/\D/g, "").slice(0, 2) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="49"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="cofinsCst" className="text-xs font-bold text-slate-500 uppercase tracking-wider">CST COFINS</Label>
+                    <Input
+                      id="cofinsCst"
+                      value={formData.cofinsCst}
+                      maxLength={2}
+                      onChange={(e) => setFormData({ ...formData, cofinsCst: e.target.value.replace(/\D/g, "").slice(0, 2) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                      placeholder="49"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="aliquotaIcms" className="text-xs font-bold text-slate-500 uppercase tracking-wider">ICMS %</Label>
+                    <Input
+                      id="aliquotaIcms"
+                      type="number"
+                      step="0.01"
+                      value={formData.aliquotaIcms ? (formData.aliquotaIcms / 100).toFixed(2) : ""}
+                      onChange={(e) => setFormData({ ...formData, aliquotaIcms: Math.round((parseFloat(e.target.value) || 0) * 100) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="aliquotaPis" className="text-xs font-bold text-slate-500 uppercase tracking-wider">PIS %</Label>
+                    <Input
+                      id="aliquotaPis"
+                      type="number"
+                      step="0.01"
+                      value={formData.aliquotaPis ? (formData.aliquotaPis / 100).toFixed(2) : ""}
+                      onChange={(e) => setFormData({ ...formData, aliquotaPis: Math.round((parseFloat(e.target.value) || 0) * 100) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="aliquotaCofins" className="text-xs font-bold text-slate-500 uppercase tracking-wider">COFINS %</Label>
+                    <Input
+                      id="aliquotaCofins"
+                      type="number"
+                      step="0.01"
+                      value={formData.aliquotaCofins ? (formData.aliquotaCofins / 100).toFixed(2) : ""}
+                      onChange={(e) => setFormData({ ...formData, aliquotaCofins: Math.round((parseFloat(e.target.value) || 0) * 100) })}
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white font-bold font-mono"
                     />
                   </div>
                 </div>

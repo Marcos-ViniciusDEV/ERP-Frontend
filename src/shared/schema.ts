@@ -26,6 +26,17 @@ export interface Produto {
   custoContabil: number;
   custoOperacional: number;
   custoFiscal: number;
+  ncm: string | null;
+  cest: string | null;
+  origem: number | null;
+  cstIcms: string | null;
+  csosnIcms: string | null;
+  cfopPadraoVenda: string | null;
+  aliquotaIcms: number | null;
+  aliquotaPis: number | null;
+  aliquotaCofins: number | null;
+  pisCst: string | null;
+  cofinsCst: string | null;
   margemLucro: number;
   margemLucro2: number;
   margemLucro3: number;
