@@ -25,8 +25,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from "recharts";
 
 export default function Home() {

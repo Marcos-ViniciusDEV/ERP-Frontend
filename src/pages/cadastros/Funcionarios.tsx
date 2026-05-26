@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, Users, DollarSign, Award, ShieldAlert } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Users, DollarSign, Award } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";

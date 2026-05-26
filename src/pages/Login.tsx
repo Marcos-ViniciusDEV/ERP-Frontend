@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Store, User, Lock, Building2, ArrowRight, ChevronLeft } from "lucide-react";
+import { Store, User, Lock, Building2, ChevronLeft } from "lucide-react";
 
 export function Login() {
   const [, setLocation] = useLocation();

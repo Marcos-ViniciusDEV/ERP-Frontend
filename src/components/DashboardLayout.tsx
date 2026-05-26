@@ -78,6 +78,7 @@ import {
   Database,
   Smartphone,
   BarChart3,
+  KeyRound,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -124,6 +125,12 @@ export const getIconForPath = (path: string) => {
   if (path.includes("/utilitarios/importacao")) return Database;
   if (path.includes("/pdv/gerenciar")) return Smartphone;
   if (path.includes("/pdv/online")) return Smartphone;
+  if (path.includes("/admin/saas")) return BarChart3;
+  if (path.includes("/admin/empresas")) return Building2;
+  if (path.includes("/admin/planos")) return CreditCard;
+  if (path.includes("/admin/assinaturas")) return FileText;
+  if (path.includes("/admin/pdvs")) return Smartphone;
+  if (path.includes("/admin/licencas")) return KeyRound;
   if (path.includes("/relatorios/")) return BarChart3;
   
   return Package; // Default fallback

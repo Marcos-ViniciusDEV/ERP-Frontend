@@ -48,7 +48,6 @@ import ResumoMovimentoUnidades from "./pages/relatorios/ResumoMovimentoUnidades"
 import ResumoTipoMovimento from "./pages/relatorios/ResumoTipoMovimento";
 
 import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
 import { LandingPage } from "./pages/LandingPage";
 import { Onboarding } from "./pages/Onboarding";
 import { Profile } from "./pages/Profile";
@@ -66,6 +65,14 @@ import DashboardMetas from "./pages/relatorios/DashboardMetas";
 import CurvaABC from "./pages/relatorios/CurvaABC";
 import SupermercadoFeatures from "./pages/SupermercadoFeatures";
 import AuthPage from "./pages/AuthPage";
+import AdminSaasDashboard from "./pages/admin/AdminSaasDashboard";
+import GestaoEmpresas from "./pages/admin/GestaoEmpresas";
+import GestaoPlanos from "./pages/admin/GestaoPlanos";
+import GestaoAssinaturas from "./pages/admin/GestaoAssinaturas";
+import GestaoPDVs from "./pages/admin/GestaoPDVs";
+import GestaoLicencas from "./pages/admin/GestaoLicencas";
+import AdminLogin from "./pages/admin/AdminLogin";
+import Bloqueado from "./pages/Bloqueado";
 
 /**
  * Componente que encapsula a lógica de proteção de rotas com RBAC
@@ -97,6 +104,26 @@ function PermissionRoute({
   );
 }
 
+function AdminRoute({
+  path,
+  component: Component,
+}: {
+  path: string;
+  component: React.ComponentType<any>;
+}) {
+  return (
+    <Route path={path}>
+      {(params) => {
+        const { user, loading } = useAuth();
+        if (loading) return null;
+        if (!user) return <Redirect to="/admin/login" />;
+        if (user.role !== "trakto_admin") return <Redirect to="/dashboard" />;
+        return <Component {...params} />;
+      }}
+    </Route>
+  );
+}
+
 /**
  * Componente de Roteamento
  * Define todas as rotas da aplicação
@@ -122,6 +149,9 @@ function Router() {
       <Route path={"/register"} component={AuthPage} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/onboarding"} component={Onboarding} />
+      <Route path={"/bloqueado"} component={Bloqueado} />
+      <Route path={"/admin/login"} component={AdminLogin} />
+      <Route path={"/admin"}><Redirect to="/admin/saas" /></Route>
 
       {/* Rotas Protegidas (exigem autenticação) */}
       <Route path={"/dashboard"} component={Home} />
@@ -175,6 +205,12 @@ function Router() {
       <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
       <PermissionRoute path="/pdv/gerenciar" component={GerenciarPDV} permission="pdv_gerenciar" />
       <PermissionRoute path="/pdv/online" component={PdvOnline} permission="pdv_online" />
+      <AdminRoute path="/admin/saas" component={AdminSaasDashboard} />
+      <AdminRoute path="/admin/empresas" component={GestaoEmpresas} />
+      <AdminRoute path="/admin/planos" component={GestaoPlanos} />
+      <AdminRoute path="/admin/assinaturas" component={GestaoAssinaturas} />
+      <AdminRoute path="/admin/pdvs" component={GestaoPDVs} />
+      <AdminRoute path="/admin/licencas" component={GestaoLicencas} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

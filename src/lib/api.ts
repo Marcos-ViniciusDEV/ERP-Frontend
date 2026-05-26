@@ -25,6 +25,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 403 && error.response?.data?.code === "EMPRESA_BLOQUEADA") {
+      localStorage.setItem("empresa_bloqueada_motivo", error.response.data.motivo ?? "");
+      window.location.href = "/bloqueado";
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       // Handle unauthorized (e.g., redirect to login)
       localStorage.removeItem("auth_token");

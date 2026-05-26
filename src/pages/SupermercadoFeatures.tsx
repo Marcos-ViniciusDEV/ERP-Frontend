@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, 
-  ShoppingCart, 
   BarChart3, 
   Package, 
   Zap, 
@@ -10,9 +9,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Monitor,
-  CreditCard,
   Target,
-  MessageCircle,
   TrendingUp,
   Users
 } from "lucide-react";

@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   Check,
@@ -11,13 +8,10 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
-  Eye,
-  EyeOff,
   ShoppingCart,
   Menu,
   X,
   Store,
-  ArrowRight,
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
