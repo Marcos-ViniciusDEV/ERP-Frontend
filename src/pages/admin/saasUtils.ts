@@ -51,6 +51,15 @@ export const saasApi = {
   licencas: () => api.get("/saas/licencas").then((res) => res.data),
   criarLicenca: (data: any) => api.post("/saas/licencas", data).then((res) => res.data),
   revogarLicenca: (id: number) => api.patch(`/saas/licencas/${id}/revogar`).then((res) => res.data),
+
+  suporteTickets: (params?: any) => api.get("/saas/support/tickets", { params }).then((res) => res.data),
+  atualizarSuporteTicket: (id: number, data: any) =>
+    api.patch(`/saas/support/tickets/${id}`, data).then((res) => res.data),
+  suporteTutorials: (params?: any) => api.get("/saas/support/tutorials", { params }).then((res) => res.data),
+  criarSuporteTutorial: (data: any) => api.post("/saas/support/tutorials", data).then((res) => res.data),
+  atualizarSuporteTutorial: (id: number, data: any) =>
+    api.patch(`/saas/support/tutorials/${id}`, data).then((res) => res.data),
+  desativarSuporteTutorial: (id: number) => api.delete(`/saas/support/tutorials/${id}`).then((res) => res.data),
 };
 
 export function useSaasData<T>(loader: () => Promise<T>, deps: React.DependencyList = []) {

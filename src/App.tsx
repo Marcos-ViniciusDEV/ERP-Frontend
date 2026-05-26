@@ -73,6 +73,9 @@ import GestaoPDVs from "./pages/admin/GestaoPDVs";
 import GestaoLicencas from "./pages/admin/GestaoLicencas";
 import AdminLogin from "./pages/admin/AdminLogin";
 import Bloqueado from "./pages/Bloqueado";
+import CentralSuporte from "./pages/suporte/CentralSuporte";
+import GestaoSuporte from "./pages/admin/GestaoSuporte";
+import GestaoTutoriais from "./pages/admin/GestaoTutoriais";
 
 /**
  * Componente que encapsula a lógica de proteção de rotas com RBAC
@@ -205,12 +208,15 @@ function Router() {
       <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
       <PermissionRoute path="/pdv/gerenciar" component={GerenciarPDV} permission="pdv_gerenciar" />
       <PermissionRoute path="/pdv/online" component={PdvOnline} permission="pdv_online" />
+      <PermissionRoute path="/suporte/central" component={CentralSuporte} />
       <AdminRoute path="/admin/saas" component={AdminSaasDashboard} />
       <AdminRoute path="/admin/empresas" component={GestaoEmpresas} />
       <AdminRoute path="/admin/planos" component={GestaoPlanos} />
       <AdminRoute path="/admin/assinaturas" component={GestaoAssinaturas} />
       <AdminRoute path="/admin/pdvs" component={GestaoPDVs} />
       <AdminRoute path="/admin/licencas" component={GestaoLicencas} />
+      <AdminRoute path="/admin/suporte" component={GestaoSuporte} />
+      <AdminRoute path="/admin/tutoriais" component={GestaoTutoriais} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

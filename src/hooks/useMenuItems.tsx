@@ -189,6 +189,12 @@ export function useMenuItems() {
         { label: "PDV Online", path: "/pdv/online", permission: "pdv_online" },
       ],
     },
+    {
+      label: "Suporte",
+      items: [
+        { label: "Central de Suporte", path: "/suporte/central" },
+      ],
+    },
   ];
 
   // Função recursiva para filtrar menus e submenus

@@ -79,6 +79,7 @@ import {
   Smartphone,
   BarChart3,
   KeyRound,
+  Headphones,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -131,6 +132,7 @@ export const getIconForPath = (path: string) => {
   if (path.includes("/admin/assinaturas")) return FileText;
   if (path.includes("/admin/pdvs")) return Smartphone;
   if (path.includes("/admin/licencas")) return KeyRound;
+  if (path.includes("/suporte/")) return Headphones;
   if (path.includes("/relatorios/")) return BarChart3;
   
   return Package; // Default fallback

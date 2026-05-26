@@ -8,6 +8,8 @@ import {
   KeyRound,
   LogOut,
   MonitorSmartphone,
+  Headphones,
+  Video,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useLocation } from "wouter";
@@ -19,6 +21,8 @@ const navItems = [
   { label: "Assinaturas", path: "/admin/assinaturas", icon: FileText },
   { label: "PDVs", path: "/admin/pdvs", icon: MonitorSmartphone },
   { label: "Licenças", path: "/admin/licencas", icon: KeyRound },
+  { label: "Suporte", path: "/admin/suporte", icon: Headphones },
+  { label: "Tutoriais", path: "/admin/tutoriais", icon: Video },
 ];
 
 export default function AdminSaasLayout({ children }: { children: ReactNode }) {
