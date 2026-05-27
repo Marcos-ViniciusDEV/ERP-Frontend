@@ -63,6 +63,7 @@ import Producao from "./pages/estoque/Producao";
 import GestaoDevolucoes from "./pages/vendas/GestaoDevolucoes";
 import DashboardMetas from "./pages/relatorios/DashboardMetas";
 import CurvaABC from "./pages/relatorios/CurvaABC";
+import AnalyticsGerenciais from "./pages/relatorios/AnalyticsGerenciais";
 import SupermercadoFeatures from "./pages/SupermercadoFeatures";
 import AuthPage from "./pages/AuthPage";
 import AdminSaasDashboard from "./pages/admin/AdminSaasDashboard";
@@ -208,6 +209,7 @@ function Router() {
       <PermissionRoute path="/relatorios/etiquetas-diario" component={PosicaoEtiquetasDiario} permission="relatorios_ver" />
       <PermissionRoute path="/relatorios/metas" component={DashboardMetas} permission="relatorios_ver" />
       <PermissionRoute path="/relatorios/curva-abc" component={CurvaABC} permission="relatorios_ver" />
+      <PermissionRoute path="/relatorios/analytics" component={AnalyticsGerenciais} permission="relatorios_ver" />
       
       <Route path="/solucoes/supermercado" component={SupermercadoFeatures} />
       <PermissionRoute path="/pdv/gerenciar" component={GerenciarPDV} permission="pdv_gerenciar" />

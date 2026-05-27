@@ -82,6 +82,11 @@ export function useMenuItems() {
       label: "Relatórios",
       items: [
         {
+          label: "Analytics Gerenciais",
+          path: "/relatorios/analytics",
+          permission: "relatorios_ver",
+        },
+        {
           label: "Relatórios de Documentos",
           permission: "relatorios_ver",
           items: [
