@@ -121,6 +121,7 @@ export const getIconForPath = (path: string) => {
   if (path.includes("/financeiro/receber")) return CreditCard;
   if (path.includes("/financeiro/pagar")) return FileText;
   if (path.includes("/configuracoes/parametros")) return Settings;
+  if (path.includes("/configuracoes/pagamentos")) return CreditCard;
   if (path.includes("/configuracoes/calculadora")) return Calculator;
   if (path.includes("/utilitarios/etiquetas")) return Tag;
   if (path.includes("/utilitarios/importacao")) return Database;

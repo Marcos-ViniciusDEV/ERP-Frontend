@@ -48,6 +48,70 @@ const priorityTone: Record<string, string> = {
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleDateString("pt-BR") : "-";
 
+const BUILTIN_TUTORIALS = [
+  {
+    id: "builtin-maquininha",
+    titulo: "Como configurar uma maquininha no sistema",
+    descricao: "Passo a passo para cadastrar maquininha, taxas e enviar a carga para o PDV.",
+    modulo: "Pagamentos",
+    tempoEstimado: "8 min",
+    fixado: true,
+    conteudo: `Objetivo: configurar uma maquininha no ERP para o PDV usar as formas de pagamento corretas e registrar taxas de débito, crédito, parcelado e PIX.
+
+1. Acesse a tela de pagamentos
+Entre no ERP e vá em Configurações > Pagamentos e Maquininhas.
+
+2. Configure as formas de pagamento
+Na aba Formas de pagamento, habilite Pagamentos manuais para permitir dinheiro, cartão manual e PIX manual.
+Se a maquininha tiver integração por API, habilite POS/API.
+Se a empresa usar TEF com PinPad e integrador homologado, habilite TEF integrado.
+Se for usar PIX integrado, habilite PIX integrado.
+
+3. Cadastre a adquirente ou provedor
+Na aba Maquininhas e TEF, preencha Nome para exibição com um nome fácil de identificar.
+Exemplos: Mercado Pago - Caixa 1, Stone - Loja Principal, PagBank - Balcão.
+No campo Provedor, escolha Mercado Pago, Stone, PagBank, Itaú, Cielo, Rede, Getnet ou outro disponível.
+Escolha o ambiente: Homologação para teste ou Produção para uso real.
+Clique em Adicionar.
+
+4. Cadastre o terminal do PDV
+Ainda na aba Maquininhas e TEF, vá em Terminal por PDV.
+Preencha o PDV ID exatamente como o caixa usa, por exemplo PDV001.
+Informe o Nome do terminal, por exemplo Mercado Pago Caixa 1.
+Escolha o Tipo:
+Manual: quando o operador passa o cartão fora do sistema e só registra a venda no PDV.
+POS/API: quando a maquininha permite integração por API.
+TEF: quando existe integrador TEF local e PinPad homologado.
+Clique em Adicionar terminal.
+
+5. Configure as taxas
+Vá para a aba Taxas e recebimentos.
+Cadastre as taxas de Débito, Crédito à vista, Crédito parcelado e PIX.
+Informe a taxa em percentual, o prazo de recebimento e a faixa de parcelas quando for crédito parcelado.
+Se o provedor permitir consulta por API, clique em Atualizar taxas pela API.
+Revise a comparação entre Taxa atual e Taxa API antes de aplicar.
+Clique em Aplicar taxas encontradas somente se estiver tudo correto.
+
+6. Salve e envie para o PDV
+Clique em Salvar configurações.
+Depois clique em Enviar carga PDV.
+Os PDVs online recebem a configuração na hora.
+Os PDVs offline recebem na próxima carga ou sincronização.
+
+7. Teste no PDV
+Abra o PDV e faça uma venda de teste.
+Na tela de pagamento, confira se aparecem as formas configuradas.
+Para modo manual, passe o cartão na maquininha e registre no PDV a forma usada.
+Para POS/API ou TEF, a venda só deve finalizar depois do retorno aprovado da integração.
+
+8. Conferência depois da venda
+No ERP, acompanhe as vendas e a conciliação.
+Confira valor bruto, taxa, valor líquido previsto e prazo de recebimento.
+
+Observação importante: nem toda maquininha permite receber o valor automaticamente pelo sistema. Quando a API ou TEF não estiver disponível, use o modo manual.`,
+  },
+];
+
 export default function CentralSuporte() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,10 +141,17 @@ export default function CentralSuporte() {
     queryFn: async () => (await api.get("/support/articles")).data,
   });
 
-  const { data: tutorials = [] } = useQuery({
+  const { data: fetchedTutorials = [] } = useQuery({
     queryKey: ["support", "tutorials"],
     queryFn: async () => (await api.get("/support/tutorials")).data,
   });
+
+  const tutorials = useMemo(() => {
+    const hasPaymentTutorial = fetchedTutorials.some((item: any) =>
+      String(item.titulo || "").toLowerCase().includes("maquininha")
+    );
+    return hasPaymentTutorial ? fetchedTutorials : [...BUILTIN_TUTORIALS, ...fetchedTutorials];
+  }, [fetchedTutorials]);
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ["support", "search", searchTerm],
@@ -138,7 +209,7 @@ export default function CentralSuporte() {
     { label: "Chamados", value: overview?.totalTickets ?? 0, icon: Ticket, tone: "text-blue-600" },
     { label: "Abertos", value: overview?.abertos ?? 0, icon: Clock, tone: "text-amber-600" },
     { label: "Artigos", value: overview?.artigos ?? 0, icon: BookOpen, tone: "text-green-600" },
-    { label: "Tutoriais", value: overview?.tutoriais ?? 0, icon: Video, tone: "text-purple-600" },
+    { label: "Tutoriais", value: tutorials.length, icon: Video, tone: "text-purple-600" },
   ];
 
   return (
@@ -346,42 +417,70 @@ function TicketList({ tickets, empty }: { tickets: any[]; empty: string }) {
 
 function ContentGrid({ items, type, empty }: { items: any[]; type: "article" | "tutorial"; empty: string }) {
   const Icon = type === "article" ? BookOpen : Video;
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {items.length === 0 ? (
-        <Card className="md:col-span-2 xl:col-span-3">
-          <CardContent className="p-6 text-sm text-muted-foreground">{empty}</CardContent>
-        </Card>
-      ) : items.map((item) => (
-        <Card key={item.id} className="overflow-hidden">
-          {type === "tutorial" && item.youtubeVideoId && (
-            <div className="aspect-video bg-slate-950">
-              <iframe
-                className="h-full w-full"
-                src={`https://www.youtube.com/embed/${item.youtubeVideoId}`}
-                title={item.titulo}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+    <>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {items.length === 0 ? (
+          <Card className="md:col-span-2 xl:col-span-3">
+            <CardContent className="p-6 text-sm text-muted-foreground">{empty}</CardContent>
+          </Card>
+        ) : items.map((item) => (
+          <Card key={item.id} className="overflow-hidden">
+            {type === "tutorial" && item.youtubeVideoId && (
+              <div className="aspect-video bg-slate-950">
+                <iframe
+                  className="h-full w-full"
+                  src={`https://www.youtube.com/embed/${item.youtubeVideoId}`}
+                  title={item.titulo}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            )}
+            <CardHeader>
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle className="text-base">{item.titulo}</CardTitle>
+                <Icon className="h-5 w-5 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{item.resumo || item.descricao}</p>
+              <p className="mt-3 line-clamp-4 text-sm whitespace-pre-line">{item.conteudo}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {item.fixado && <Badge className="bg-blue-100 text-blue-800">Fixado</Badge>}
+                {(item.categoria || item.modulo) && <Badge variant="secondary">{item.categoria || item.modulo}</Badge>}
+                {item.tempoEstimado && <Badge variant="outline">{item.tempoEstimado}</Badge>}
+              </div>
+              <Button className="mt-4 w-full" variant="outline" onClick={() => setSelectedItem(item)}>
+                Ver passo a passo
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedItem?.titulo}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedItem?.descricao && (
+              <p className="text-sm text-muted-foreground">{selectedItem.descricao}</p>
+            )}
+            <div className="rounded-md border bg-slate-50 p-4 text-sm leading-6 whitespace-pre-line">
+              {selectedItem?.conteudo}
             </div>
-          )}
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-base">{item.titulo}</CardTitle>
-              <Icon className="h-5 w-5 text-blue-600" />
+            <div className="flex flex-wrap gap-2">
+              {selectedItem?.fixado && <Badge className="bg-blue-100 text-blue-800">Fixado</Badge>}
+              {(selectedItem?.categoria || selectedItem?.modulo) && <Badge variant="secondary">{selectedItem.categoria || selectedItem.modulo}</Badge>}
+              {selectedItem?.tempoEstimado && <Badge variant="outline">{selectedItem.tempoEstimado}</Badge>}
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{item.resumo || item.descricao}</p>
-            <p className="mt-3 line-clamp-4 text-sm">{item.conteudo}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {item.fixado && <Badge className="bg-blue-100 text-blue-800">Fixado</Badge>}
-              {(item.categoria || item.modulo) && <Badge variant="secondary">{item.categoria || item.modulo}</Badge>}
-              {item.tempoEstimado && <Badge variant="outline">{item.tempoEstimado}</Badge>}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

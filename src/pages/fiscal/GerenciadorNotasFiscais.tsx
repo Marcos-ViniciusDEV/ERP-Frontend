@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, FileCheck2, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Eye, FileCheck2, RefreshCw, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,8 @@ type FiscalDocument = {
   serie: number | null;
   numeroVenda: string | null;
   valorLiquido: number | null;
+  chaveAcesso?: string | null;
+  motivoStatus?: string | null;
 };
 
 type PreflightIssue = {
@@ -68,6 +70,27 @@ export default function GerenciadorNotasFiscais() {
     onError: (error: any) => toast.error(error.response?.data?.error || "Erro ao preparar documento"),
   });
 
+  const emitir = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/fiscal/documentos/emitir", { vendaId: Number(vendaId), modelo });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setIssues(data.preflight?.issues || []);
+      queryClient.invalidateQueries({ queryKey: ["fiscal-documents"] });
+      data.authorized ? toast.success("Nota fiscal criada") : toast.warning(data.message || "Nota criada pendente de transmissao");
+    },
+    onError: (error: any) => toast.error(error.response?.data?.error || "Erro ao criar nota fiscal"),
+  });
+
+  const openFiscalFile = async (documentId: number, type: "xml" | "danfe") => {
+    const response = await api.get(`/fiscal/documentos/${documentId}/${type}`, { responseType: "blob" });
+    const contentType = type === "xml" ? "application/xml" : "text/html";
+    const blob = new Blob([response.data], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -85,7 +108,7 @@ export default function GerenciadorNotasFiscais() {
         <Card>
           <CardHeader><CardTitle>Preparar documento fiscal por venda</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-[220px_180px_auto_auto] gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_180px_auto_auto_auto] gap-4 items-end">
               <div className="space-y-2">
                 <Label>ID da venda</Label>
                 <Input value={vendaId} onChange={(event) => setVendaId(event.target.value.replace(/\D/g, ""))} placeholder="Ex: 123" />
@@ -107,6 +130,10 @@ export default function GerenciadorNotasFiscais() {
               <Button disabled={!vendaId || prepare.isPending} onClick={() => prepare.mutate()}>
                 <FileCheck2 className="h-4 w-4 mr-2" />
                 Preparar nota
+              </Button>
+              <Button disabled={!vendaId || emitir.isPending} onClick={() => emitir.mutate()}>
+                <Send className="h-4 w-4 mr-2" />
+                Criar nota
               </Button>
             </div>
 
@@ -139,11 +166,12 @@ export default function GerenciadorNotasFiscais() {
                   <TableHead>Ambiente</TableHead>
                   <TableHead>Numero</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Arquivos</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : documents && documents.length > 0 ? (
                   documents.map((document) => (
                     <TableRow key={document.id}>
@@ -154,10 +182,22 @@ export default function GerenciadorNotasFiscais() {
                       <TableCell>{document.ambiente}</TableCell>
                       <TableCell>{document.serie && document.numero ? `${document.serie}/${document.numero}` : "-"}</TableCell>
                       <TableCell className="text-right">{formatCurrency(document.valorLiquido || 0)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openFiscalFile(document.id, "xml")} disabled={!document.chaveAcesso}>
+                            <Download className="h-4 w-4 mr-1" />
+                            XML
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openFiscalFile(document.id, "danfe")} disabled={!document.chaveAcesso}>
+                            <Eye className="h-4 w-4 mr-1" />
+                            DANFE
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum documento fiscal criado.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Nenhum documento fiscal criado.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

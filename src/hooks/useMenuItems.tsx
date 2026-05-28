@@ -173,6 +173,7 @@ export function useMenuItems() {
       items: [
         { label: "Parâmetros do Sistema", path: "/configuracoes/parametros", permission: "cadastros_usuarios" },
         { label: "Configurações Fiscais", path: "/fiscal/configuracoes", permission: "cadastros_usuarios" },
+        { label: "Pagamentos e Maquininhas", path: "/configuracoes/pagamentos", permission: "cadastros_usuarios" },
         { label: "Calculadora", path: "/configuracoes/calculadora" },
         {
           label: "Relatórios Personalizados",

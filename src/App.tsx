@@ -79,6 +79,7 @@ import GestaoSuporte from "./pages/admin/GestaoSuporte";
 import GestaoTutoriais from "./pages/admin/GestaoTutoriais";
 import ConfiguracoesFiscais from "./pages/fiscal/ConfiguracoesFiscais";
 import GerenciadorNotasFiscais from "./pages/fiscal/GerenciadorNotasFiscais";
+import ConfiguracoesPagamentos from "./pages/configuracoes/ConfiguracoesPagamentos";
 
 /**
  * Componente que encapsula a lógica de proteção de rotas com RBAC
@@ -186,6 +187,7 @@ function Router() {
       <PermissionRoute path={"/vendas/nfe"} component={GerenciadorNotasFiscais} permission="vendas_consultar" />
       <PermissionRoute path={"/financeiro/caixa"} component={MovimentacaoCaixa} permission="financeiro_caixa" />
       <PermissionRoute path={"/fiscal/configuracoes"} component={ConfiguracoesFiscais} permission="cadastros_usuarios" />
+      <PermissionRoute path={"/configuracoes/pagamentos"} component={ConfiguracoesPagamentos} permission="cadastros_usuarios" />
       <PermissionRoute path={"/utilitarios/etiquetas"} component={Etiquetas} permission="utilitarios_etiquetas" />
       
       {/* Relatórios */}
