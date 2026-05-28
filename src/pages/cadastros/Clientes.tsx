@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Plus, Upload, FileText, ArrowRightLeft, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,22 +31,50 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 // Schema for client form
 const clientSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
+  nome: z.string().min(1, "Nome e obrigatorio"),
+  razaoSocial: z.string().optional().nullable(),
+  nomeFantasia: z.string().optional().nullable(),
+  tipoPessoa: z.enum(["FISICA", "JURIDICA", "ESTRANGEIRO"]).default("FISICA"),
   cpfCnpj: z.string().optional(),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
+  inscricaoEstadual: z.string().optional().nullable(),
+  indicadorInscricaoEstadual: z.enum(["1", "2", "9"]).default("9"),
+  email: z.string().email("Email invalido").optional().or(z.literal("")),
   telefone: z.string().optional(),
   endereco: z.string().optional(),
+  logradouro: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
+  complemento: z.string().optional().nullable(),
+  bairro: z.string().optional().nullable(),
+  municipio: z.string().optional().nullable(),
+  codigoMunicipio: z.string().optional().nullable(),
+  uf: z.string().optional().nullable(),
+  cep: z.string().optional().nullable(),
+  pais: z.string().optional().nullable(),
 });
 
-type ClientFormValues = z.infer<typeof clientSchema>;
+type ClientFormValues = z.input<typeof clientSchema>;
 
 type Cliente = {
   id: number;
   nome: string;
+  razaoSocial: string | null;
+  nomeFantasia: string | null;
+  tipoPessoa: "FISICA" | "JURIDICA" | "ESTRANGEIRO";
   cpfCnpj: string | null;
+  inscricaoEstadual: string | null;
+  indicadorInscricaoEstadual: "1" | "2" | "9" | null;
   email: string | null;
   telefone: string | null;
   endereco: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  municipio: string | null;
+  codigoMunicipio: string | null;
+  uf: string | null;
+  cep: string | null;
+  pais: string | null;
   fotoCaminho: string | null;
 };
 
@@ -118,18 +147,35 @@ export default function Clientes() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
-  } = useForm<ClientFormValues>({
+  } = useForm<any>({
     resolver: zodResolver(clientSchema),
   });
+  const tipoPessoa = watch("tipoPessoa") || "FISICA";
+  const indicadorInscricaoEstadual = watch("indicadorInscricaoEstadual") || "9";
 
   const resetForm = () => {
     reset({
       nome: "",
+      razaoSocial: "",
+      nomeFantasia: "",
+      tipoPessoa: "FISICA",
       cpfCnpj: "",
+      inscricaoEstadual: "",
+      indicadorInscricaoEstadual: "9",
       email: "",
       telefone: "",
       endereco: "",
+      logradouro: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      municipio: "",
+      codigoMunicipio: "",
+      uf: "",
+      cep: "",
+      pais: "Brasil",
     });
     setSelectedImage(null);
     setEditingClient(null);
@@ -138,10 +184,24 @@ export default function Clientes() {
   const handleEdit = (cliente: Cliente) => {
     setEditingClient(cliente);
     setValue("nome", cliente.nome);
+    setValue("razaoSocial", cliente.razaoSocial || "");
+    setValue("nomeFantasia", cliente.nomeFantasia || "");
+    setValue("tipoPessoa", cliente.tipoPessoa || "FISICA");
     setValue("cpfCnpj", cliente.cpfCnpj || "");
+    setValue("inscricaoEstadual", cliente.inscricaoEstadual || "");
+    setValue("indicadorInscricaoEstadual", cliente.indicadorInscricaoEstadual || "9");
     setValue("email", cliente.email || "");
     setValue("telefone", cliente.telefone || "");
     setValue("endereco", cliente.endereco || "");
+    setValue("logradouro", cliente.logradouro || "");
+    setValue("numero", cliente.numero || "");
+    setValue("complemento", cliente.complemento || "");
+    setValue("bairro", cliente.bairro || "");
+    setValue("municipio", cliente.municipio || "");
+    setValue("codigoMunicipio", cliente.codigoMunicipio || "");
+    setValue("uf", cliente.uf || "");
+    setValue("cep", cliente.cep || "");
+    setValue("pais", cliente.pais || "Brasil");
     setSelectedImage(cliente.fotoCaminho ?? null);
     setIsModalOpen(true);
   };
@@ -265,7 +325,7 @@ export default function Clientes() {
         </Card>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingClient ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             </DialogHeader>
@@ -291,29 +351,98 @@ export default function Clientes() {
                 <div className="space-y-2">
                   <Label htmlFor="nome">Nome Completo</Label>
                   <Input id="nome" {...register("nome")} />
-                  {errors.nome && <span className="text-red-500 text-xs">{errors.nome.message}</span>}
+                  {errors.nome && <span className="text-red-500 text-xs">{String(errors.nome.message)}</span>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={tipoPessoa} onValueChange={(value: "FISICA" | "JURIDICA" | "ESTRANGEIRO") => setValue("tipoPessoa", value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FISICA">Pessoa fisica</SelectItem>
+                      <SelectItem value="JURIDICA">Pessoa juridica</SelectItem>
+                      <SelectItem value="ESTRANGEIRO">Estrangeiro</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cpfCnpj">CPF/CNPJ</Label>
                   <Input id="cpfCnpj" {...register("cpfCnpj")} />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inscricaoEstadual">Inscricao estadual</Label>
+                  <Input id="inscricaoEstadual" {...register("inscricaoEstadual")} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="razaoSocial">Razao social</Label>
+                  <Input id="razaoSocial" {...register("razaoSocial")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nomeFantasia">Nome fantasia</Label>
+                  <Input id="nomeFantasia" {...register("nomeFantasia")} />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" {...register("email")} />
-                  {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
+                  {errors.email && <span className="text-red-500 text-xs">{String(errors.email.message)}</span>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="telefone">Telefone</Label>
                   <Input id="telefone" {...register("telefone")} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Indicador IE</Label>
+                  <Select value={indicadorInscricaoEstadual} onValueChange={(value: "1" | "2" | "9") => setValue("indicadorInscricaoEstadual", value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Contribuinte ICMS</SelectItem>
+                      <SelectItem value="2">Contribuinte isento</SelectItem>
+                      <SelectItem value="9">Nao contribuinte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endereco">Endereço Completo</Label>
-                <Input id="endereco" placeholder="Rua, Número, Bairro, Cidade, CEP" {...register("endereco")} />
+                <Label htmlFor="endereco">Endereco Completo</Label>
+                <Input id="endereco" placeholder="Rua, Numero, Bairro, Cidade, CEP" {...register("endereco")} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="logradouro">Logradouro</Label>
+                  <Input id="logradouro" {...register("logradouro")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numero">Numero</Label>
+                  <Input id="numero" {...register("numero")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro</Label>
+                  <Input id="bairro" {...register("bairro")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="municipio">Municipio</Label>
+                  <Input id="municipio" {...register("municipio")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="codigoMunicipio">Codigo IBGE</Label>
+                  <Input id="codigoMunicipio" {...register("codigoMunicipio")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="uf">UF</Label>
+                  <Input id="uf" maxLength={2} {...register("uf")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input id="cep" {...register("cep")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input id="complemento" {...register("complemento")} />
+                </div>
               </div>
 
               <DialogFooter>

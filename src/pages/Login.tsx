@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { setAuthToken } from "@/_core/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -16,6 +16,7 @@ import { Store, User, Lock, Building2, ChevronLeft } from "lucide-react";
 
 export function Login() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
 
   // Step 1: Empresa
@@ -73,7 +74,8 @@ export function Login() {
     },
     onSuccess: (data) => {
       setAuthToken(data.token);
-      setLocation("/onboarding"); 
+      queryClient.setQueryData(["auth", "me"], data.user);
+      setLocation("/dashboard");
     },
     onError: (error: any) => {
       setError(error.response?.data?.error || "Erro ao fazer login");

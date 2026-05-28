@@ -14,7 +14,7 @@ import { toast } from "sonner";
 type FiscalDocument = {
   id: number;
   vendaId: number | null;
-  modelo: "NFE" | "NFCE";
+  modelo: "NFE" | "NFCE" | "SAT" | "MFE";
   ambiente: "HOMOLOGACAO" | "PRODUCAO";
   status: string;
   numero: number | null;
@@ -34,7 +34,7 @@ type PreflightIssue = {
 export default function GerenciadorNotasFiscais() {
   const queryClient = useQueryClient();
   const [vendaId, setVendaId] = useState("");
-  const [modelo, setModelo] = useState<"NFE" | "NFCE">("NFCE");
+  const [modelo, setModelo] = useState<"NFE" | "NFCE" | "SAT" | "MFE">("NFCE");
   const [issues, setIssues] = useState<PreflightIssue[]>([]);
 
   const { data: documents, isLoading } = useQuery<FiscalDocument[]>({
@@ -97,7 +97,7 @@ export default function GerenciadorNotasFiscais() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Gerenciador de Notas Fiscais</h1>
-            <p className="text-sm text-muted-foreground">Pre-validacao e controle inicial de NFC-e/NF-e.</p>
+            <p className="text-sm text-muted-foreground">Pre-validacao e controle fiscal de NFC-e, NF-e, SAT e MFE.</p>
           </div>
           <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["fiscal-documents"] })}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -115,11 +115,13 @@ export default function GerenciadorNotasFiscais() {
               </div>
               <div className="space-y-2">
                 <Label>Modelo</Label>
-                <Select value={modelo} onValueChange={(value: "NFE" | "NFCE") => setModelo(value)}>
+                <Select value={modelo} onValueChange={(value: "NFE" | "NFCE" | "SAT" | "MFE") => setModelo(value)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NFCE">NFC-e</SelectItem>
                     <SelectItem value="NFE">NF-e</SelectItem>
+                    <SelectItem value="SAT">SAT CF-e</SelectItem>
+                    <SelectItem value="MFE">MFE CF-e</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

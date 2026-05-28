@@ -155,14 +155,14 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={AuthPage} />
       <Route path={"/auth"} component={AuthPage} />
-      <Route path={"/onboarding"} component={Onboarding} />
+      <PermissionRoute path={"/onboarding"} component={Onboarding} />
       <Route path={"/bloqueado"} component={Bloqueado} />
       <Route path={"/admin/login"} component={AdminLogin} />
       <Route path={"/admin"}><Redirect to="/admin/saas" /></Route>
 
       {/* Rotas Protegidas (exigem autenticação) */}
-      <Route path={"/dashboard"} component={Home} />
-      <Route path={"/profile"} component={Profile} />
+      <PermissionRoute path={"/dashboard"} component={Home} />
+      <PermissionRoute path={"/profile"} component={Profile} />
 
       {/* Cadastros */}
       <PermissionRoute path={"/cadastros/clientes"} component={Clientes} permission="cadastros_clientes" />

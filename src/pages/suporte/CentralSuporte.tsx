@@ -110,6 +110,154 @@ Confira valor bruto, taxa, valor líquido previsto e prazo de recebimento.
 
 Observação importante: nem toda maquininha permite receber o valor automaticamente pelo sistema. Quando a API ou TEF não estiver disponível, use o modo manual.`,
   },
+  {
+    id: "builtin-fiscal-varejo",
+    titulo: "Como deixar o fiscal pronto para vender no varejo",
+    descricao: "Passo a passo para configurar certificado, NFC-e, NF-e, SAT/MFE, homologação e produção.",
+    modulo: "Fiscal",
+    tempoEstimado: "15 min",
+    fixado: true,
+    conteudo: `Objetivo: preparar o sistema para emitir documentos fiscais no varejo com segurança, usando NFC-e, NF-e e, quando necessário, SAT/MFE.
+
+1. Confirme o modelo fiscal da empresa
+Fale com o contador e confirme quais modelos serão usados.
+NFC-e: venda ao consumidor no caixa/PDV.
+NF-e: venda com destinatário identificado, CNPJ, entrega ou operação que exija modelo 55.
+SAT/MFE: usado em estados que exigem equipamento fiscal local.
+
+2. Acesse as configurações fiscais
+No ERP, vá em Configurações > Configurações Fiscais.
+Confira se você está na empresa correta.
+Cada empresa precisa ter a própria configuração fiscal.
+
+3. Configure o ambiente
+Use Homologação para testes.
+Use Produção somente depois que os testes forem aprovados pelo contador.
+Nunca comece direto em Produção.
+
+4. Configure o regime tributário
+Selecione o regime da empresa:
+Simples Nacional.
+Lucro Presumido.
+Lucro Real.
+Essa informação deve ser confirmada com o contador.
+
+5. Cadastre o certificado digital A1
+Na área Cofre de certificados A1, informe:
+Nome do arquivo.
+Caminho seguro ou identificador do certificado.
+Senha do certificado.
+Validade.
+CNPJ do certificado.
+Razão social.
+Depois clique em Cadastrar certificado.
+Em seguida clique em Testar validade.
+Se o teste indicar certificado vencido ou sem validade, corrija antes de emitir notas.
+
+6. Configure NFC-e
+Habilite NFC-e automática no PDV.
+Informe:
+Série NFC-e.
+Próxima numeração NFC-e.
+ID Token CSC.
+CSC.
+Esses dados são fornecidos pela SEFAZ ou pelo contador.
+
+7. Configure NF-e
+Informe:
+Série NF-e.
+Próxima numeração NF-e.
+Confira se os clientes estão completos quando for emitir NF-e:
+Nome ou razão social.
+CPF/CNPJ.
+Endereço.
+Cidade, UF e CEP.
+A NF-e exige destinatário completo.
+
+8. Revise o cadastro dos produtos
+Antes de emitir, cada produto vendido precisa ter dados fiscais:
+NCM com 8 dígitos.
+CFOP de venda.
+Origem fiscal.
+CST ICMS ou CSOSN.
+CST PIS.
+CST COFINS.
+Unidade comercial.
+Produtos sem esses dados podem causar rejeição.
+
+9. Configure SAT/MFE quando o estado exigir
+Na área SAT/MFE por PDV, cadastre o equipamento:
+PDV ID.
+Tipo: SAT ou MFE.
+Fabricante.
+Modelo.
+Número de série.
+Código de ativação.
+CNPJ da software house.
+Assinatura do aplicativo comercial.
+Depois clique em Cadastrar equipamento.
+
+10. Entenda o agent local SAT/MFE
+SAT/MFE não é emitido apenas pelo navegador.
+O computador do caixa precisa de um agent local ou PDV desktop conectado ao equipamento.
+Esse agent conversa com o SAT/MFE, recebe o XML CF-e e sincroniza com o ERP.
+
+11. Faça uma pré-validação fiscal
+Vá em Vendas > Notas Fiscais.
+Informe o ID da venda.
+Escolha o modelo: NFC-e, NF-e, SAT CF-e ou MFE CF-e.
+Clique em Pre-validar.
+Resolva todos os erros antes de criar a nota.
+Avisos podem indicar pontos de atenção, mas erros bloqueiam a emissão.
+
+12. Crie a nota fiscal
+Depois da pré-validação aprovada, clique em Criar nota.
+O documento ficará pronto para envio fiscal real.
+Quando o motor fiscal ou provedor estiver conectado, ele assina, transmite e retorna o protocolo oficial.
+
+13. Confira o status da nota
+No Gerenciador de Notas Fiscais, acompanhe:
+Modelo.
+Status.
+Ambiente.
+Série e número.
+Chave de acesso.
+XML.
+DANFE ou DANFCE.
+Se houver rejeição, leia o motivo e corrija cadastro, venda ou configuração.
+
+14. Teste em homologação
+Antes de liberar para o cliente final:
+Emita uma NFC-e de teste.
+Emita uma NF-e de teste.
+Teste cancelamento.
+Teste inutilização quando disponível.
+Teste impressão.
+Teste SAT/MFE com equipamento real, se a empresa usa esse modelo.
+Envie XMLs para o contador validar.
+
+15. Ative produção
+Só altere para Produção depois que:
+Certificado estiver válido.
+CSC/idToken estiver correto.
+Produtos estiverem com dados fiscais completos.
+Numeração estiver correta.
+Contador aprovar os testes.
+PDV estiver imprimindo corretamente.
+
+16. Cuidados diários
+Monitore notas rejeitadas.
+Baixe XMLs para contabilidade.
+Confira documentos cancelados.
+Confira pendências em contingência.
+Não altere numeração fiscal sem orientação do contador.
+
+Resumo rápido:
+NFC-e precisa de certificado, CSC/idToken, produto fiscal completo e SEFAZ.
+NF-e precisa de certificado, cliente completo, produto fiscal completo e SEFAZ.
+SAT/MFE precisa de equipamento fiscal e agent local no PDV.
+Produção só deve ser usada depois da homologação aprovada.`,
+  },
 ];
 
 export default function CentralSuporte() {
