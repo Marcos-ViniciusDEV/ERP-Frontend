@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import { RefreshCw, Send, CheckCircle, AlertCircle, Wifi, WifiOff, CreditCard, KeyRound, Copy } from 'lucide-react';
+import { RefreshCw, Send, CheckCircle, AlertCircle, Wifi, WifiOff, CreditCard, KeyRound, Copy, ShieldCheck } from 'lucide-react';
 
 interface PDV {
   id: string;
@@ -12,6 +12,7 @@ interface PDV {
   location: string;
   lastSeen: Date;
   online: boolean;
+  transport?: 'websocket' | 'http';
   cnpjVinculado?: string | null;
   pinpadKey?: {
     possuiChaveAtiva: boolean;
@@ -35,7 +36,11 @@ export default function GerenciarPDV() {
   const [pdvs, setPdvs] = useState<PDV[]>([]);
   const [result, setResult] = useState<any>(null);
   const [generatedKey, setGeneratedKey] = useState<any>(null);
+  const [tokenPdvId, setTokenPdvId] = useState('');
+  const [accessTokenData, setAccessTokenData] = useState<any>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const [error, setError] = useState('');
+  const [listError, setListError] = useState('');
 
   useEffect(() => {
     loadActivePDVs();
@@ -47,8 +52,10 @@ export default function GerenciarPDV() {
     try {
       const { data } = await api.get('/pdv/ativos');
       setPdvs(data.data || []);
-    } catch (err) {
+      setListError('');
+    } catch (err: any) {
       console.error('Failed to load PDVs:', err);
+      setListError(err.response?.data?.message || 'Nao foi possivel consultar os PDVs conectados');
     }
   };
 
@@ -91,6 +98,34 @@ export default function GerenciarPDV() {
     await navigator.clipboard.writeText(generatedKey.pinpadKey);
   };
 
+  const handleGerarTokenAcesso = async () => {
+    const pdvId = tokenPdvId.trim();
+    if (!pdvId) {
+      setError('Informe o ID do PDV para gerar o token de sincronizacao');
+      return;
+    }
+
+    setTokenLoading(true);
+    setError('');
+    setAccessTokenData(null);
+
+    try {
+      const { data } = await api.post('/pdv/token-acesso', { pdvId });
+      setAccessTokenData(data.data);
+      setTokenPdvId(data.data?.pdvId || pdvId);
+      await loadActivePDVs();
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.response?.data?.error || 'Erro ao gerar token de sincronizacao');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const copyAccessToken = async () => {
+    if (!accessTokenData?.token) return;
+    await navigator.clipboard.writeText(accessTokenData.token);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -100,6 +135,69 @@ export default function GerenciarPDV() {
             Configure e sincronize os pontos de venda
           </p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Token de sincronizacao do PDV
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[280px_1fr_auto] lg:items-end">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">ID do PDV</label>
+                <input
+                  value={tokenPdvId}
+                  onChange={(e) => setTokenPdvId(e.target.value)}
+                  placeholder="Ex: CAIXA-01"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CNPJ</label>
+                <div className="flex h-10 items-center rounded-md border bg-muted/30 px-3 text-sm text-muted-foreground">
+                  {accessTokenData?.cnpjEmpresa || 'Gerado automaticamente pela empresa logada'}
+                </div>
+              </div>
+              <Button onClick={handleGerarTokenAcesso} disabled={tokenLoading}>
+                {tokenLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+                Gerar token
+              </Button>
+            </div>
+
+            {accessTokenData && (
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="grid gap-3 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="text-muted-foreground">PDV</p>
+                    <p className="font-semibold">{accessTokenData.pdvId}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">CNPJ</p>
+                    <p className="font-semibold">{accessTokenData.cnpjEmpresa}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Empresa</p>
+                    <p className="font-semibold">{accessTokenData.nomeEmpresa}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-3 md:flex-row md:items-center md:justify-between">
+                  <code className="break-all text-xs font-semibold md:text-sm">{accessTokenData.token}</code>
+                  <Button variant="outline" size="sm" onClick={copyAccessToken}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar token
+                  </Button>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Cole este token no PDV Electron junto com o CNPJ e o ID do PDV. Para o mesmo ID, o token gerado permanece igual.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Card de PDVs Ativos */}
         <Card>
@@ -120,12 +218,17 @@ export default function GerenciarPDV() {
             </div>
           </CardHeader>
           <CardContent>
+            {listError && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {listError}
+              </div>
+            )}
             {pdvs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <WifiOff className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhum PDV conectado</p>
                 <p className="text-sm mt-2">
-                  Abra o PDV em http://localhost:5174 para conectar
+                  Configure CNPJ, ID e token no PDV para conectar
                 </p>
               </div>
             ) : (
@@ -144,6 +247,9 @@ export default function GerenciarPDV() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           ID: {pdv.id}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Sincronizacao: {pdv.transport === 'websocket' ? 'WebSocket ativo' : 'Heartbeat autenticado'}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <Badge variant={pdv.maquininha?.conectada ? 'default' : 'secondary'} className="gap-1">
