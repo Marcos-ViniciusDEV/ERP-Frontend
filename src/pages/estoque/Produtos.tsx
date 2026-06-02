@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -19,7 +20,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, Send, Zap, Calendar, Clock, Percent, DollarSign, Package } from "lucide-react";
+import { Search, RefreshCw, Send, Zap, Calendar, Clock, Percent, DollarSign, Package, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,12 +39,23 @@ interface Departamento {
   nome: string;
 }
 
+interface FiscalPendencia {
+  produtoId: number;
+  issues: Array<{ code: string; field: string; message: string }>;
+}
+
+interface FiscalPendenciasResponse {
+  totalPendentes: number;
+  pendentes: FiscalPendencia[];
+}
+
 export default function Produtos() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [onlyFiscalPending, setOnlyFiscalPending] = useState(false);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +82,13 @@ export default function Produtos() {
     }
   });
 
+  const { data: fiscalPendencias } = useQuery<FiscalPendenciasResponse>({
+    queryKey: ["produtos", "fiscal-pendencias"],
+    queryFn: async () => (await api.get("/produtos/fiscal/pendencias")).data,
+  });
+
+  const fiscalPendenciasMap = new Map((fiscalPendencias?.pendentes || []).map((item) => [item.produtoId, item.issues]));
+
   const createProduto = useMutation({
     mutationFn: async (data: any) => {
       const res = await api.post("/produtos", data);
@@ -80,6 +99,7 @@ export default function Produtos() {
       setOpen(false);
       setEditingId(null);
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos", "fiscal-pendencias"] });
       resetForm();
     },
     onError: () => {
@@ -97,6 +117,7 @@ export default function Produtos() {
       setOpen(false);
       setEditingId(null);
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos", "fiscal-pendencias"] });
       resetForm();
     },
     onError: (error: any) => {
@@ -115,6 +136,7 @@ export default function Produtos() {
         setSelectedProduto(null);
       }
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos", "fiscal-pendencias"] });
     },
     onError: (error: any) => {
       const message = error.response?.data?.error || error.message || "Erro ao excluir produto";
@@ -415,6 +437,7 @@ export default function Produtos() {
   };
 
   const produtosFiltrados = produtos?.filter((produto: any) => {
+    if (onlyFiscalPending && !fiscalPendenciasMap.has(produto.id)) return false;
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -444,6 +467,15 @@ export default function Produtos() {
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold">Lista de Produtos</h2>
                 <div className="flex gap-2">
+                  <Button
+                    variant={onlyFiscalPending ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setOnlyFiscalPending(!onlyFiscalPending)}
+                    title="Filtrar produtos com pendencias fiscais"
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Pendencias fiscais ({fiscalPendencias?.totalPendentes || 0})
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setSearchOpen(!searchOpen)}>
                     <Search className="h-4 w-4" />
                   </Button>
@@ -510,6 +542,7 @@ export default function Produtos() {
                         <TableHead className="w-[100px] py-2">Grupo</TableHead>
                         <TableHead className="w-[70px] text-right py-2">Estoque</TableHead>
                         <TableHead className="w-[100px] text-right py-2">Preço PDV</TableHead>
+                        <TableHead className="w-[110px] py-2">Fiscal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -535,6 +568,19 @@ export default function Produtos() {
                           </TableCell>
                           <TableCell className="text-right font-mono py-1">
                             R$ {(produto.precoVenda / 100).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="py-1">
+                            {fiscalPendenciasMap.has(produto.id) ? (
+                              <Badge variant="destructive" title={fiscalPendenciasMap.get(produto.id)?.map((issue) => issue.message).join("\n")}>
+                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                Pendente
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-green-700">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Pronto
+                              </Badge>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

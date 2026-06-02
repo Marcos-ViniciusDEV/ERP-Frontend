@@ -1,8 +1,8 @@
-import { api } from "@/lib/api";
+import { api, setCheckoutCompanySession } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { setAuthToken } from "@/_core/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,11 +12,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Store, User, Lock, Building2, ChevronLeft } from "lucide-react";
+import { Store, User, Lock, Building2, ChevronLeft, ArrowLeft } from "lucide-react";
 
 export function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const requestedRedirect = new URLSearchParams(window.location.search).get("redirect");
+  const redirectAfterLogin = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+    ? requestedRedirect
+    : "/dashboard";
+  const isCheckoutLogin = redirectAfterLogin.startsWith("/assinar");
   const [step, setStep] = useState(1);
 
   // Step 1: Empresa
@@ -54,11 +59,16 @@ export function Login() {
 
   const companyMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await api.post("/auth/validate-company", data);
-      return response.data.empresa;
+      const response = await api.post(isCheckoutLogin ? "/auth/checkout-company" : "/auth/validate-company", data);
+      return response.data;
     },
-    onSuccess: (empresaData) => {
-      setEmpresa(empresaData);
+    onSuccess: (data) => {
+      if (isCheckoutLogin) {
+        setCheckoutCompanySession(data.token, data.empresa);
+        setLocation(redirectAfterLogin);
+        return;
+      }
+      setEmpresa(data.empresa);
       setStep(2);
       setError("");
     },
@@ -73,9 +83,9 @@ export function Login() {
       return response.data;
     },
     onSuccess: (data) => {
-      setAuthToken(data.token);
+      setAuthToken(data.token, data.refreshToken);
       queryClient.setQueryData(["auth", "me"], data.user);
-      setLocation("/dashboard");
+      setLocation(redirectAfterLogin);
     },
     onError: (error: any) => {
       setError(error.response?.data?.error || "Erro ao fazer login");
@@ -104,12 +114,21 @@ export function Login() {
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10" />
 
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-black text-xs uppercase tracking-widest cursor-pointer">
+        <ArrowLeft size={16} />
+        Voltar para Início
+      </Link>
+
       <div className="w-full max-w-[440px]">
         {/* Logo Area */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-[28px] shadow-2xl shadow-primary/20 mb-6 group cursor-pointer" onClick={() => setLocation("/")}>
+          <Link
+            href="/"
+            aria-label="Voltar para a página inicial"
+            className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-[28px] shadow-2xl shadow-primary/20 mb-6 group cursor-pointer"
+          >
             <Store className="text-white group-hover:scale-110 transition-transform" size={40} />
-          </div>
+          </Link>
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Trakto ERP<span className="text-primary italic">ERP</span></h1>
           <p className="text-slate-500 font-bold mt-2">Tecnologia para o seu varejo</p>
         </div>

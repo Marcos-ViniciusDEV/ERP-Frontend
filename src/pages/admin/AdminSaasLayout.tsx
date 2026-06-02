@@ -10,6 +10,7 @@ import {
   MonitorSmartphone,
   Headphones,
   Video,
+  ShieldCheck,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useLocation } from "wouter";
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Planos", path: "/admin/planos", icon: CreditCard },
   { label: "Assinaturas", path: "/admin/assinaturas", icon: FileText },
   { label: "PDVs", path: "/admin/pdvs", icon: MonitorSmartphone },
+  { label: "Provider Fiscal", path: "/admin/provider-fiscal", icon: ShieldCheck },
   { label: "Licenças", path: "/admin/licencas", icon: KeyRound },
   { label: "Suporte", path: "/admin/suporte", icon: Headphones },
   { label: "Tutoriais", path: "/admin/tutoriais", icon: Video },

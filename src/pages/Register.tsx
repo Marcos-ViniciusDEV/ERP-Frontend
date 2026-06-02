@@ -22,7 +22,7 @@ export function Register() {
     },
     onSuccess: (data) => {
       // Armazenar token no localStorage
-      setAuthToken(data.token);
+      setAuthToken(data.token, data.refreshToken);
       setLocation("/onboarding"); // Redirect to onboarding after registration
     },
     onError: (error: any) => {

@@ -52,6 +52,9 @@ export const saasApi = {
   criarLicenca: (data: any) => api.post("/saas/licencas", data).then((res) => res.data),
   revogarLicenca: (id: number) => api.patch(`/saas/licencas/${id}/revogar`).then((res) => res.data),
 
+  fiscalProvider: () => api.get("/saas/fiscal/provider").then((res) => res.data),
+  salvarFiscalProvider: (data: any) => api.post("/saas/fiscal/provider", data).then((res) => res.data),
+
   suporteTickets: (params?: any) => api.get("/saas/support/tickets", { params }).then((res) => res.data),
   atualizarSuporteTicket: (id: number, data: any) =>
     api.patch(`/saas/support/tickets/${id}`, data).then((res) => res.data),

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Check,
   Zap,
@@ -106,19 +105,15 @@ export function LandingPage() {
           </div>
           <nav className="hidden md:flex items-center space-x-10 text-sm font-bold text-slate-500">
             <a href="#funcionalidades" className="hover:text-primary transition-colors">Recursos</a>
-            <a href="#precos" className="hover:text-primary transition-colors">Planos</a>
+            <Link href="/assinar" className="hover:text-primary transition-colors">Planos</Link>
             <a href="#faq" className="hover:text-primary transition-colors">Suporte</a>
           </nav>
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/auth">
-              <a className="text-sm font-bold text-slate-600 hover:text-primary transition-colors px-4 py-2 cursor-pointer">
-                Entrar
-              </a>
+            <Link href="/login" className="text-sm font-bold text-slate-600 hover:text-primary transition-colors px-4 py-2 cursor-pointer">
+              Entrar
             </Link>
-            <Link href="/auth">
-              <a className="bg-primary text-white font-bold py-3 px-6 rounded-2xl hover:brightness-110 transition-all shadow-xl shadow-primary/25 text-sm cursor-pointer">
-                Solicitar Demonstração
-              </a>
+            <Link href="/auth" className="bg-primary text-white font-bold py-3 px-6 rounded-2xl hover:brightness-110 transition-all shadow-xl shadow-primary/25 text-sm cursor-pointer">
+              Solicitar Demonstração
             </Link>
           </div>
           <button className="md:hidden p-2 text-slate-900" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
@@ -130,10 +125,12 @@ export function LandingPage() {
           <div className="md:hidden bg-white border-t p-8 space-y-6 shadow-2xl animate-in slide-in-from-top duration-300">
             <nav className="flex flex-col space-y-5 font-bold text-slate-600">
               <a href="#funcionalidades" onClick={() => setIsMobileMenuOpen(false)}>Recursos</a>
-              <a href="#precos" onClick={() => setIsMobileMenuOpen(false)}>Planos</a>
+              <Link href="/assinar" onClick={() => setIsMobileMenuOpen(false)}>Planos</Link>
               <a href="#faq" onClick={() => setIsMobileMenuOpen(false)}>Suporte</a>
             </nav>
-            <Button className="w-full bg-primary h-14 rounded-2xl font-bold" onClick={() => setIsMobileMenuOpen(false)}>Testar Grátis</Button>
+            <Link href="/auth">
+              <Button className="w-full bg-primary h-14 rounded-2xl font-bold" onClick={() => setIsMobileMenuOpen(false)}>Testar Grátis</Button>
+            </Link>
           </div>
         )}
       </header>
@@ -158,10 +155,8 @@ export function LandingPage() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link href="/auth">
-                <a className="bg-primary text-white font-black py-4 px-8 rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-primary/30 text-base cursor-pointer">
-                  Solicitar Demonstração
-                </a>
+              <Link href="/auth" className="bg-primary text-white font-black py-4 px-8 rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-primary/30 text-base cursor-pointer">
+                Solicitar Demonstração
               </Link>
             </div>
           </div>
@@ -302,111 +297,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="precos" className="py-24 bg-slate-50 relative overflow-hidden">
-        <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
-        
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Planos que <span className="text-primary italic">cabem</span> no seu bolso</h2>
-            <p className="text-slate-500 font-bold">Escolha o plano ideal para o momento do seu negócio</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {/* Starter Plan */}
-            <Card className="p-8 border-0 shadow-2xl rounded-[32px] bg-white flex flex-col h-full reveal-on-scroll reveal-card" style={{ transitionDelay: "0ms" }}>
-              <div className="mb-8">
-                <h3 className="text-xl font-black mb-2">Starter</h3>
-                <p className="text-slate-400 font-bold text-sm">Ideal para pequenos negócios</p>
-              </div>
-              <div className="mb-8">
-                <span className="text-4xl font-black text-slate-900">R$ 99</span>
-                <span className="text-slate-400 font-bold">/mês</span>
-              </div>
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  1 Usuário Ativo
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  PDVs Ilimitados
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  Emissão de Notas (NFC-e)
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  Suporte Horário Comercial
-                </li>
-              </ul>
-              <Button className="w-full h-12 bg-slate-100 hover:bg-primary hover:text-white text-slate-900 font-black rounded-xl transition-all shadow-none">Começar Agora</Button>
-            </Card>
-
-            {/* Professional Plan */}
-            <Card className="p-8 border-primary border-2 shadow-2xl shadow-primary/20 rounded-[32px] bg-white flex flex-col h-full relative overflow-hidden reveal-on-scroll reveal-card" style={{ transitionDelay: "150ms" }}>
-              <div className="absolute top-4 right-[-35px] bg-primary text-white text-[10px] font-black uppercase py-1 px-10 rotate-45">Popular</div>
-              <div className="mb-8">
-                <h3 className="text-xl font-black mb-2 text-primary">Profissional</h3>
-                <p className="text-slate-400 font-bold text-sm">Para lojas em crescimento</p>
-              </div>
-              <div className="mb-8">
-                <span className="text-4xl font-black text-slate-900">R$ 199</span>
-                <span className="text-slate-400 font-bold">/mês</span>
-              </div>
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  Usuários Ilimitados
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  PDVs Ilimitados
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  PDV Offline
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  APK do sistema para ser usado como coletor
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  Gestão de Estoque Avançada
-                </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                  Suporte via WhatsApp
-                </li>
-              </ul>
-              <Button className="w-full h-12 bg-primary hover:brightness-110 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/25">Assinar Plano</Button>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* About Section */}
       <section className="py-24 bg-slate-900 text-white relative overflow-hidden reveal-on-scroll">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] opacity-30" />
@@ -470,7 +360,7 @@ export function LandingPage() {
             <ul className="space-y-4 font-bold text-sm text-slate-500">
               <li><a href="#solucoes" className="hover:text-primary transition-colors">Soluções</a></li>
               <li><a href="#funcionalidades" className="hover:text-primary transition-colors">Funcionalidades</a></li>
-              <li><a href="#precos" className="hover:text-primary transition-colors">Preços</a></li>
+              <li><Link href="/assinar" className="hover:text-primary transition-colors">Planos</Link></li>
             </ul>
           </div>
           <div>

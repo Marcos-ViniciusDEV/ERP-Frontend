@@ -43,7 +43,7 @@ export function useMenuItems() {
       label: "Movimentos",
       items: [
         { label: "Vendas", path: "/vendas/consultar", permission: "vendas_consultar" },
-        { label: "Notas Fiscais", path: "/vendas/nfe", permission: "vendas_consultar" },
+        { label: "Notas Fiscais", path: "/vendas/nfe", permission: "fiscal_consultar" },
         { label: "Trocas e Devoluções", path: "/vendas/devolucoes", permission: "vendas_devolucoes" },
         { label: "Entrada de Mercadoria", path: "/estoque/entrada", permission: "estoque_entrada" },
         { label: "Conferência de Mercadoria", path: "/estoque/conferencia", permission: "estoque_conferencia" },
@@ -172,7 +172,7 @@ export function useMenuItems() {
       label: "Configurações",
       items: [
         { label: "Parâmetros do Sistema", path: "/configuracoes/parametros", permission: "cadastros_usuarios" },
-        { label: "Configurações Fiscais", path: "/fiscal/configuracoes", permission: "cadastros_usuarios" },
+        { label: "Configurações Fiscais", path: "/fiscal/configuracoes", permission: "fiscal_configurar" },
         { label: "Pagamentos e Maquininhas", path: "/configuracoes/pagamentos", permission: "cadastros_usuarios" },
         { label: "Calculadora", path: "/configuracoes/calculadora" },
         {

@@ -77,9 +77,12 @@ import Bloqueado from "./pages/Bloqueado";
 import CentralSuporte from "./pages/suporte/CentralSuporte";
 import GestaoSuporte from "./pages/admin/GestaoSuporte";
 import GestaoTutoriais from "./pages/admin/GestaoTutoriais";
+import GestaoProviderFiscal from "./pages/admin/GestaoProviderFiscal";
 import ConfiguracoesFiscais from "./pages/fiscal/ConfiguracoesFiscais";
 import GerenciadorNotasFiscais from "./pages/fiscal/GerenciadorNotasFiscais";
 import ConfiguracoesPagamentos from "./pages/configuracoes/ConfiguracoesPagamentos";
+import { CheckoutAssinatura } from "./pages/CheckoutAssinatura";
+import ImportacaoDados from "./pages/utilitarios/ImportacaoDados";
 
 /**
  * Componente que encapsula a lógica de proteção de rotas com RBAC
@@ -151,6 +154,7 @@ function Router() {
   return (
     <Switch>
       {/* Rotas Públicas */}
+      <Route path={"/assinar"} component={CheckoutAssinatura} />
       <Route path={"/"} component={LandingPage} />
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={AuthPage} />
@@ -184,11 +188,12 @@ function Router() {
       <PermissionRoute path={"/vendas/consultar"} component={ConsultarVendas} permission="vendas_consultar" />
       <PermissionRoute path={"/vendas/ofertas"} component={GestaoOfertas} permission="vendas_ofertas" />
       <PermissionRoute path={"/vendas/devolucoes"} component={GestaoDevolucoes} permission="vendas_devolucoes" />
-      <PermissionRoute path={"/vendas/nfe"} component={GerenciadorNotasFiscais} permission="vendas_consultar" />
+      <PermissionRoute path={"/vendas/nfe"} component={GerenciadorNotasFiscais} permission="fiscal_consultar" />
       <PermissionRoute path={"/financeiro/caixa"} component={MovimentacaoCaixa} permission="financeiro_caixa" />
-      <PermissionRoute path={"/fiscal/configuracoes"} component={ConfiguracoesFiscais} permission="cadastros_usuarios" />
+      <PermissionRoute path={"/fiscal/configuracoes"} component={ConfiguracoesFiscais} permission="fiscal_configurar" />
       <PermissionRoute path={"/configuracoes/pagamentos"} component={ConfiguracoesPagamentos} permission="cadastros_usuarios" />
       <PermissionRoute path={"/utilitarios/etiquetas"} component={Etiquetas} permission="utilitarios_etiquetas" />
+      <PermissionRoute path={"/utilitarios/importacao"} component={ImportacaoDados} permission="cadastros_usuarios" />
       
       {/* Relatórios */}
       <PermissionRoute path="/relatorios/posicao-estoques" component={PosicaoEstoques} permission="relatorios_ver" />
@@ -223,6 +228,7 @@ function Router() {
       <AdminRoute path="/admin/assinaturas" component={GestaoAssinaturas} />
       <AdminRoute path="/admin/pdvs" component={GestaoPDVs} />
       <AdminRoute path="/admin/licencas" component={GestaoLicencas} />
+      <AdminRoute path="/admin/provider-fiscal" component={GestaoProviderFiscal} />
       <AdminRoute path="/admin/suporte" component={GestaoSuporte} />
       <AdminRoute path="/admin/tutoriais" component={GestaoTutoriais} />
       <Route path={"/404"} component={NotFound} />

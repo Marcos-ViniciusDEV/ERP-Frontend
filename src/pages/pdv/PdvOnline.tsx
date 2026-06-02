@@ -16,6 +16,13 @@ interface Produto {
   controlaEstoque?: boolean;
 }
 
+interface Cliente {
+  id: number;
+  nome: string;
+  cpfCnpj?: string | null;
+  razaoSocial?: string | null;
+}
+
 export default function PdvOnline() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -25,6 +32,8 @@ export default function PdvOnline() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Produto[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Produto[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clienteId, setClienteId] = useState("");
   const [multiplier, setMultiplier] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -40,10 +49,14 @@ export default function PdvOnline() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get("/produtos");
-        setProducts(res.data);
+        const [produtosRes, clientesRes] = await Promise.all([
+          api.get("/produtos"),
+          api.get("/clientes"),
+        ]);
+        setProducts(produtosRes.data);
+        setClientes(clientesRes.data);
       } catch (e) {
-        toast.error("Erro ao carregar produtos");
+        toast.error("Erro ao carregar dados do PDV");
       }
     }
     load();
@@ -283,6 +296,21 @@ export default function PdvOnline() {
 
           <div className="icard">
             <span className="lbl">Info do Caixa</span>
+            <div style={{marginBottom: 10}}>
+              <span className="lbl" style={{display: 'block', marginBottom: 6}}>Cliente</span>
+              <select
+                value={clienteId}
+                onChange={(event) => setClienteId(event.target.value)}
+                style={{width: '100%'}}
+              >
+                <option value="">Consumidor nao identificado</option>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.razaoSocial || cliente.nome}{cliente.cpfCnpj ? ` - ${cliente.cpfCnpj}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div style={{display:'flex', justifyContent:'space-between'}}>
               <span style={{color:'var(--pdv-text2)'}}>Status</span>
               <span style={{color:'var(--pdv-success)', fontWeight:600}}>â— Online</span>
@@ -340,7 +368,7 @@ export default function PdvOnline() {
       )}
 
       {showPayment && (
-        <PaymentModal onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); clear(); }} />
+        <PaymentModal clienteId={clienteId} onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); clear(); setClienteId(""); }} />
       )}
     </div>
   );
@@ -357,7 +385,7 @@ const getOnlinePaymentLabel = (method: string) =>
   ONLINE_PAYMENT_METHODS.find((item) => item.id === method)?.label || method.toUpperCase();
 
 // Payment Modal Sub-Component
-function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+function PaymentModal({ clienteId, onClose, onSuccess }: { clienteId: string, onClose: () => void, onSuccess: () => void }) {
   const { items, getNetTotal, getDiscount, getTotal } = usePdvOnlineStore();
   const [payments, setPayments] = useState<{method:string, amount:number}[]>([]);
   const [selectedMethod, setSelectedMethod] = useState("dinheiro");
@@ -410,6 +438,7 @@ function PaymentModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
     if (remaining > 0) return toast.error("Ainda hÃ¡ valor pendente");
     try {
       const payload = {
+        clienteId: clienteId ? Number(clienteId) : undefined,
         formaPagamento: payments[0].method,
         desconto: getDiscount(),
         itens: items.map(i => ({

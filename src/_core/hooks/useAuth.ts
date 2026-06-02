@@ -22,7 +22,7 @@
  * <button onClick={logout}>Sair</button>
  */
 
-import { api } from "@/lib/api";
+import { api, getRefreshToken, refreshSessionToken, setSessionTokens } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -39,17 +39,8 @@ const TOKEN_KEY = "auth_token";
  * Define ou remove o token de autenticação do localStorage
  * @param token - Token JWT ou null para remover
  */
-export const setAuthToken = (token: string | null) => {
-  console.log("[setAuthToken] Called with token:", token ? `${token.substring(0, 20)}...` : "NULL");
-  if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-    console.log("[setAuthToken] Token saved to localStorage with key:", TOKEN_KEY);
-    const saved = localStorage.getItem(TOKEN_KEY);
-    console.log("[setAuthToken] Verification - token in localStorage:", saved ? `${saved.substring(0, 20)}...` : "NOT FOUND!");
-  } else {
-    localStorage.removeItem(TOKEN_KEY);
-    console.log("[setAuthToken] Token removed from localStorage");
-  }
+export const setAuthToken = (token: string | null, refreshToken?: string | null) => {
+  setSessionTokens(token, refreshToken);
 };
 
 /**
@@ -98,9 +89,8 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // No REST API, logout is usually client-side only or a simple call
-      // Assuming no backend call needed for JWT stateless logout, or optional
-      return;
+      const refreshToken = getRefreshToken();
+      if (refreshToken) await api.post("/auth/logout", { refreshToken });
     },
     onSuccess: () => {
       queryClient.setQueryData(["auth", "me"], null);
@@ -109,9 +99,8 @@ export function useAuth(options?: UseAuthOptions) {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      // Implement refresh logic if backend supports it, otherwise just re-fetch me
-      // For now, assuming re-login or just re-fetch
-      return;
+      const token = await refreshSessionToken();
+      return token ? { token } : null;
     },
     onSuccess: (data: any) => {
       if (data?.token) {
@@ -169,7 +158,7 @@ export function useAuth(options?: UseAuthOptions) {
     state.user,
   ]);
 
-  // Renovar token a cada 24 horas para evitar logout
+  // Renova antes da expiracao padrao de 4 horas.
   useEffect(() => {
     if (!state.isAuthenticated) return;
 
@@ -177,8 +166,8 @@ export function useAuth(options?: UseAuthOptions) {
       () => {
         refreshMutation.mutate();
       },
-      24 * 60 * 60 * 1000
-    ); // 24 horas
+      3 * 60 * 60 * 1000
+    );
 
     return () => clearInterval(refreshInterval);
   }, [state.isAuthenticated, refreshMutation]);

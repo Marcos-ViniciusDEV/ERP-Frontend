@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { hasPermission } from "@/_core/utils/permissions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Cpu, KeyRound, Plus, RadioTower, Save, ShieldCheck, TestTube2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -25,6 +27,7 @@ type FiscalConfig = {
   serieNfe: number;
   idTokenIsc?: string | null;
   csc?: string | null;
+  confirmarAlteracaoCritica?: boolean;
 };
 
 type CertificadoDigital = {
@@ -57,15 +60,6 @@ type EmpresaFiscal = {
   cep?: string | null;
 };
 
-type ProviderCredential = {
-  id: number;
-  provedor: "FOCUS_NFE" | "NFE_IO" | "PLUGNOTAS";
-  ambiente: "HOMOLOGACAO" | "PRODUCAO";
-  baseUrl?: string | null;
-  companyId?: string | null;
-  ativo: boolean;
-};
-
 type SatMfeEquipamento = {
   id: number;
   pdvId: string;
@@ -94,6 +88,16 @@ type FiscalReadiness = {
   }>;
 };
 
+type FiscalAudit = {
+  id: number;
+  usuarioId?: number | null;
+  acao: string;
+  entidade: string;
+  entidadeId?: string | null;
+  detalhesJson?: string | null;
+  createdAt: string;
+};
+
 const defaultConfig: FiscalConfig = {
   habilitarNfce: false,
   ambiente: "HOMOLOGACAO",
@@ -109,38 +113,11 @@ const defaultConfig: FiscalConfig = {
   csc: "",
 };
 
-const defaultEmpresaFiscal: EmpresaFiscal = {
-  razaoSocial: "",
-  nomeFantasia: "",
-  cnpj: "",
-  inscricaoEstadual: "",
-  inscricaoMunicipal: "",
-  crt: "1",
-  cnae: "",
-  telefone: "",
-  emailFiscal: "",
-  logradouro: "",
-  numero: "",
-  complemento: "",
-  bairro: "",
-  municipio: "",
-  codigoMunicipio: "",
-  uf: "",
-  cep: "",
-};
-
 export default function ConfiguracoesFiscais() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canViewLogs = hasPermission(user, "fiscal_ver_logs");
   const [form, setForm] = useState<FiscalConfig>(defaultConfig);
-  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal>(defaultEmpresaFiscal);
-  const [providerForm, setProviderForm] = useState({
-    provedor: "FOCUS_NFE" as "FOCUS_NFE" | "NFE_IO" | "PLUGNOTAS",
-    ambiente: "HOMOLOGACAO" as "HOMOLOGACAO" | "PRODUCAO",
-    token: "",
-    baseUrl: "",
-    companyId: "",
-    ativo: true,
-  });
   const [certificadoForm, setCertificadoForm] = useState({
     nomeArquivo: "",
     caminhoSeguro: "",
@@ -174,11 +151,6 @@ export default function ConfiguracoesFiscais() {
     queryFn: async () => (await api.get("/fiscal/empresa")).data,
   });
 
-  const { data: providerCredentials = [] } = useQuery<ProviderCredential[]>({
-    queryKey: ["fiscal-provider-credentials"],
-    queryFn: async () => (await api.get("/fiscal/provedor/credenciais")).data,
-  });
-
   const { data: certificados = [] } = useQuery<CertificadoDigital[]>({
     queryKey: ["fiscal-certificados"],
     queryFn: async () => (await api.get("/fiscal/certificados")).data,
@@ -194,6 +166,12 @@ export default function ConfiguracoesFiscais() {
     queryFn: async () => (await api.get("/fiscal/readiness")).data,
   });
 
+  const { data: auditoria = [] } = useQuery<FiscalAudit[]>({
+    queryKey: ["fiscal-auditoria"],
+    queryFn: async () => (await api.get("/fiscal/auditoria")).data,
+    enabled: canViewLogs,
+  });
+
   useEffect(() => {
     if (data) {
       setForm({
@@ -204,17 +182,22 @@ export default function ConfiguracoesFiscais() {
     }
   }, [data]);
 
-  useEffect(() => {
-    if (empresaFiscalData) {
-      setEmpresaFiscal({ ...defaultEmpresaFiscal, ...empresaFiscalData });
-    }
-  }, [empresaFiscalData]);
-
   const saveConfig = useMutation({
     mutationFn: async (enviarCargaPdv: boolean = false) => {
+      const criticalChange = !!data && (
+        (data.ambiente !== form.ambiente && form.ambiente === "PRODUCAO")
+        || data.serieNfce !== form.serieNfce
+        || data.proximoNumeroNfce !== form.proximoNumeroNfce
+        || data.serieNfe !== form.serieNfe
+        || data.proximoNumeroNfe !== form.proximoNumeroNfe
+      );
+      if (criticalChange && !window.confirm("Esta alteração afeta produção ou numeração fiscal. Confirma que os dados foram revisados com o responsável fiscal da empresa?")) {
+        throw new Error("Alteração fiscal crítica cancelada pelo usuário");
+      }
       const response = await api.put(`/fiscal/config${enviarCargaPdv ? "?enviarCarga=true" : ""}`, {
         ...form,
         enviarCargaPdv,
+        confirmarAlteracaoCritica: criticalChange,
       });
       return response.data;
     },
@@ -229,27 +212,6 @@ export default function ConfiguracoesFiscais() {
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Erro ao salvar configuracoes fiscais");
     },
-  });
-
-  const saveEmpresaFiscal = useMutation({
-    mutationFn: async () => (await api.put("/fiscal/empresa", empresaFiscal)).data,
-    onSuccess: () => {
-      toast.success("Cadastro fiscal da empresa salvo");
-      queryClient.invalidateQueries({ queryKey: ["fiscal-empresa"] });
-      queryClient.invalidateQueries({ queryKey: ["fiscal-readiness"] });
-    },
-    onError: (error: any) => toast.error(error.response?.data?.error || "Erro ao salvar cadastro fiscal"),
-  });
-
-  const saveProviderCredential = useMutation({
-    mutationFn: async () => (await api.post("/fiscal/provedor/credenciais", providerForm)).data,
-    onSuccess: () => {
-      toast.success("Credencial do provedor salva");
-      setProviderForm({ ...providerForm, token: "" });
-      queryClient.invalidateQueries({ queryKey: ["fiscal-provider-credentials"] });
-      queryClient.invalidateQueries({ queryKey: ["fiscal-readiness"] });
-    },
-    onError: (error: any) => toast.error(error.response?.data?.error || "Erro ao salvar credencial do provedor"),
   });
 
   const createCertificado = useMutation({
@@ -350,92 +312,57 @@ export default function ConfiguracoesFiscais() {
           </CardContent>
         </Card>
 
+        {canViewLogs && (
+          <Card>
+            <CardHeader><CardTitle>Auditoria fiscal recente</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {auditoria.length === 0 ? (
+                <div className="rounded-md border p-4 text-sm text-muted-foreground">Nenhuma alteração fiscal auditada.</div>
+              ) : auditoria.slice(0, 20).map((item) => (
+                <div key={item.id} className="rounded-md border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">{item.acao}</p>
+                    <span className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString("pt-BR")}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {item.entidade}{item.entidadeId ? ` #${item.entidadeId}` : ""} · usuário {item.usuarioId || "sistema"}
+                  </p>
+                  {item.detalhesJson && <p className="mt-1 break-all text-xs text-muted-foreground">{formatAuditDetails(item.detalhesJson)}</p>}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
-          <CardHeader><CardTitle>Cadastro fiscal da empresa</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Emitente fiscal</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Field label="Razao social" value={empresaFiscal.razaoSocial || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, razaoSocial: value })} />
-              <Field label="Nome fantasia" value={empresaFiscal.nomeFantasia || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, nomeFantasia: value })} />
-              <Field label="CNPJ" value={empresaFiscal.cnpj || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, cnpj: value })} />
-              <Field label="Inscricao estadual" value={empresaFiscal.inscricaoEstadual || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, inscricaoEstadual: value })} />
-              <div className="space-y-2">
-                <Label>CRT</Label>
-                <Select value={empresaFiscal.crt || "1"} onValueChange={(value: "1" | "2" | "3") => setEmpresaFiscal({ ...empresaFiscal, crt: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Simples Nacional</SelectItem>
-                    <SelectItem value="2">Simples excesso sublimite</SelectItem>
-                    <SelectItem value="3">Regime normal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Field label="CNAE" value={empresaFiscal.cnae || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, cnae: value })} />
-              <Field label="Telefone" value={empresaFiscal.telefone || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, telefone: value })} />
-              <Field label="E-mail fiscal" value={empresaFiscal.emailFiscal || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, emailFiscal: value })} />
-              <Field label="Logradouro" value={empresaFiscal.logradouro || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, logradouro: value })} />
-              <Field label="Numero" value={empresaFiscal.numero || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, numero: value })} />
-              <Field label="Complemento" value={empresaFiscal.complemento || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, complemento: value })} />
-              <Field label="Bairro" value={empresaFiscal.bairro || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, bairro: value })} />
-              <Field label="Municipio" value={empresaFiscal.municipio || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, municipio: value })} />
-              <Field label="Codigo IBGE" value={empresaFiscal.codigoMunicipio || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, codigoMunicipio: value })} />
-              <Field label="UF" value={empresaFiscal.uf || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, uf: value.toUpperCase().slice(0, 2) })} />
-              <Field label="CEP" value={empresaFiscal.cep || ""} onChange={(value) => setEmpresaFiscal({ ...empresaFiscal, cep: value })} />
+            <div className="grid gap-4 md:grid-cols-4">
+              <SummaryField label="Razao social" value={empresaFiscalData?.razaoSocial} />
+              <SummaryField label="Nome fantasia" value={empresaFiscalData?.nomeFantasia} />
+              <SummaryField label="CNPJ" value={empresaFiscalData?.cnpj} />
+              <SummaryField label="Inscricao estadual" value={empresaFiscalData?.inscricaoEstadual} />
+              <SummaryField label="CRT" value={empresaFiscalData?.crt} />
+              <SummaryField label="Municipio / UF" value={[empresaFiscalData?.municipio, empresaFiscalData?.uf].filter(Boolean).join(" / ")} />
+              <SummaryField label="Codigo IBGE" value={empresaFiscalData?.codigoMunicipio} />
+              <SummaryField label="CEP" value={empresaFiscalData?.cep} />
             </div>
-            <Button onClick={() => saveEmpresaFiscal.mutate()} disabled={saveEmpresaFiscal.isPending || !empresaFiscal.razaoSocial || !empresaFiscal.cnpj}>
-              <Save className="h-4 w-4 mr-2" />
-              Salvar cadastro fiscal
+            <p className="text-sm text-muted-foreground">Os dados do emitente sao mantidos no cadastro central da empresa para evitar informacoes divergentes.</p>
+            <Button variant="outline" onClick={() => { window.location.href = "/profile?tab=empresa"; }}>
+              Editar em Dados da Empresa
             </Button>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Credenciais do provedor fiscal</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Provider fiscal central</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div className="space-y-2">
-                <Label>Provedor</Label>
-                <Select value={providerForm.provedor} onValueChange={(value: "FOCUS_NFE" | "NFE_IO" | "PLUGNOTAS") => setProviderForm({ ...providerForm, provedor: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FOCUS_NFE">Focus NFe</SelectItem>
-                    <SelectItem value="NFE_IO">NFE.io</SelectItem>
-                    <SelectItem value="PLUGNOTAS">PlugNotas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Ambiente</Label>
-                <Select value={providerForm.ambiente} onValueChange={(value: "HOMOLOGACAO" | "PRODUCAO") => setProviderForm({ ...providerForm, ambiente: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HOMOLOGACAO">Homologacao</SelectItem>
-                    <SelectItem value="PRODUCAO">Producao</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Field label="Token API" type="password" value={providerForm.token} onChange={(value) => setProviderForm({ ...providerForm, token: value })} />
-              <Field label="Base URL opcional" value={providerForm.baseUrl} onChange={(value) => setProviderForm({ ...providerForm, baseUrl: value })} />
-              <Field label="Company ID opcional" value={providerForm.companyId} onChange={(value) => setProviderForm({ ...providerForm, companyId: value })} />
+            <div className="rounded-md border bg-muted/20 p-4 text-sm text-muted-foreground">
+              O token do provider e administrado globalmente pela Trakto. Sua empresa configura apenas os dados do emitente, certificado A1, regime e numeracao fiscal.
             </div>
-            <Button onClick={() => saveProviderCredential.mutate()} disabled={saveProviderCredential.isPending || !providerForm.token}>
-              <KeyRound className="h-4 w-4 mr-2" />
-              Salvar credencial
-            </Button>
-            <div className="grid gap-3 md:grid-cols-2">
-              {providerCredentials.length === 0 ? (
-                <div className="rounded-md border p-4 text-sm text-muted-foreground md:col-span-2">Nenhuma credencial cadastrada.</div>
-              ) : providerCredentials.map((credential) => (
-                <div key={credential.id} className="rounded-md border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{credential.provedor} - {credential.ambiente}</p>
-                      <p className="text-sm text-muted-foreground">{credential.baseUrl || "URL padrao do provedor"}</p>
-                    </div>
-                    <Badge className={credential.ativo ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-700"}>{credential.ativo ? "Ativa" : "Inativa"}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Badge className={readiness?.provider.configured ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}>
+              {readiness?.provider.configured ? "Servico central configurado" : "Servico central pendente"}
+            </Badge>
           </CardContent>
         </Card>
 
@@ -626,6 +553,15 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
   );
 }
 
+function SummaryField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value || "Nao informado"}</p>
+    </div>
+  );
+}
+
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
     <div className="space-y-2">
@@ -658,4 +594,12 @@ function fileToBase64(file: File) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+function formatAuditDetails(value: string) {
+  try {
+    return JSON.stringify(JSON.parse(value));
+  } catch {
+    return value;
+  }
 }

@@ -78,6 +78,7 @@ export default function AnalyticsGerenciais() {
   const operatorsRisk = data?.operatorsRisk ?? [];
   const customerRanking = data?.customerRanking;
   const stockForecast = data?.stockRuptureForecast ?? [];
+  const flaggedOperators = operatorsRisk.filter((item: any) => item.alertas?.length > 0).length;
 
   return (
     <DashboardLayout>
@@ -174,6 +175,12 @@ export default function AnalyticsGerenciais() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  {data?.profitPeriod?.periodoAnterior && (
+                    <div className="mt-3 rounded-md border bg-slate-50 p-3 text-sm text-slate-700">
+                      Lucro do periodo anterior: {money(data.profitPeriod.periodoAnterior.lucroBruto)}.
+                      Variacao: {data.profitPeriod.periodoAnterior.variacaoLucroPercentual === null ? "sem base anterior" : percent(data.profitPeriod.periodoAnterior.variacaoLucroPercentual)}.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -182,12 +189,13 @@ export default function AnalyticsGerenciais() {
               <DataTable
                 title="Margem real por produto"
                 icon={PackageSearch}
-                columns={["Produto", "Qtd.", "Receita", "Custo", "Margem"]}
+                columns={["Produto", "Qtd. liquida", "Devolvido", "Receita liquida", "Custo liquido", "Margem"]}
                 rows={productMargins.map((item: any) => [
                   item.nome,
-                  number(item.quantidadeVendida),
-                  money(item.receitaLiquida),
-                  money(item.custoTotal),
+                  number(item.quantidadeLiquida),
+                  money(item.receitaDevolvida),
+                  money(item.receitaLiquidaAposDevolucoes),
+                  money(item.custoLiquido),
                   <Badge key="margin" className={item.margemPercentual < 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>{percent(item.margemPercentual)}</Badge>,
                 ])}
                 empty="Nenhum produto vendido no periodo."
@@ -196,12 +204,13 @@ export default function AnalyticsGerenciais() {
               <DataTable
                 title="Produtos com margem ruim"
                 icon={AlertTriangle}
-                columns={["Produto", "Margem", "Meta", "Perda estimada"]}
+                columns={["Produto", "Margem", "Meta", "Perda estimada", "Preco sugerido"]}
                 rows={lowMarginProducts.map((item: any) => [
                   item.nome,
                   <Badge key="bad" className="bg-red-100 text-red-800">{percent(item.margemPercentual)}</Badge>,
                   percent(item.margemMinimaEsperada),
                   money(item.perdaEstimadaLucro),
+                  item.precoVendaSugerido === null ? "-" : money(item.precoVendaSugerido),
                 ])}
                 empty="Nenhum produto abaixo da margem configurada."
               />
@@ -225,21 +234,25 @@ export default function AnalyticsGerenciais() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                  <div className="mt-3 rounded-md border bg-slate-50 p-3 text-sm text-slate-700">
+                    {flaggedOperators} operador(es) acima da media de cancelamentos ou descontos no periodo.
+                  </div>
                 </CardContent>
               </Card>
 
               <DataTable
                 title="Ranking de clientes"
                 icon={Users}
-                columns={["Cliente", "Compras", "Total", "Ticket medio"]}
+                columns={["Cliente", "Compras", "Total", "Ticket medio", "Margem"]}
                 rows={(customerRanking?.items ?? []).map((item: any) => [
                   item.nome,
                   number(item.quantidadeCompras),
                   money(item.totalComprado),
                   money(item.ticketMedio),
+                  money(item.margemGerada),
                 ])}
                 empty="Nenhuma venda encontrada no periodo."
-                note={customerRanking?.warning}
+                note={customerRanking ? `${number(customerRanking.clientesComCompra)} clientes compraram no periodo. ${number(customerRanking.clientesNovos)} novos e ${number(customerRanking.clientesInativos)} inativos.` : undefined}
               />
             </div>
 

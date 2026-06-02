@@ -1,22 +1,19 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useLocation, Link } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { setAuthToken } from "@/_core/hooks/useAuth";
 import {
   Eye,
   EyeOff,
   Store,
   ArrowLeft,
-  ShieldCheck,
-  Zap,
-  Check
+  ShieldCheck
 } from "lucide-react";
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<"register" | "login">("register");
   const [formState, setFormState] = useState({
     name: "",
     companyName: "",
@@ -25,12 +22,9 @@ export default function AuthPage() {
     cnpj: "",
   });
   
-  const [loginCnpj, setLoginCnpj] = useState("");
-  const [loginSenhaEmpresa, setLoginSenhaEmpresa] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [, setLocation] = useLocation();
 
   const formatCnpj = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -40,20 +34,6 @@ export default function AuthPage() {
       .replace(/(\d{2}\.\d{3}\.\d{3})(\d)/, "$1/$2")
       .replace(/(\d{2}\.\d{3}\.\d{3}\/\d{4})(\d)/, "$1-$2");
   };
-
-  const companyMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.post("/auth/validate-company", data);
-      return response.data.empresa;
-    },
-    onSuccess: (empresaData) => {
-      sessionStorage.setItem("erp_empresa", JSON.stringify(empresaData));
-      setLocation("/login");
-    },
-    onError: (error: any) => {
-      setLoginError(error.response?.data?.error || "Empresa não encontrada ou senha incorreta");
-    },
-  });
 
   const handleChange = (field: keyof typeof formState) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormState((prev) => ({ ...prev, [field]: e.target.value }));
@@ -71,9 +51,9 @@ export default function AuthPage() {
         password: formState.password,
       });
       
-      localStorage.setItem("erp_token", response.data.token);
+      setAuthToken(response.data.token);
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = "/onboarding";
       }, 1500);
     } catch (err: any) {
       setIsSubmitting(false);
@@ -87,49 +67,27 @@ export default function AuthPage() {
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
 
-      <Link href="/">
-        <a className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-black text-xs uppercase tracking-widest cursor-pointer">
-          <ArrowLeft size={16} />
-          Voltar para Início
-        </a>
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-black text-xs uppercase tracking-widest cursor-pointer">
+        <ArrowLeft size={16} />
+        Voltar para Início
       </Link>
 
       <div className="w-full max-w-[480px]">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-[28px] shadow-2xl shadow-primary/20 mb-6">
-            <Store className="text-white" size={40} />
-          </div>
+          <Link
+            href="/"
+            aria-label="Voltar para a página inicial"
+            className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-[28px] shadow-2xl shadow-primary/20 mb-6 group cursor-pointer"
+          >
+            <Store className="text-white group-hover:scale-110 transition-transform" size={40} />
+          </Link>
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Trakto ERP<span className="text-primary italic">ERP</span></h1>
           <p className="text-slate-500 font-bold mt-2">Comece sua jornada de automação hoje</p>
         </div>
 
         <Card className="border-0 shadow-[0_30px_100px_-20px_rgba(124,58,237,0.15)] bg-white/90 backdrop-blur-xl rounded-[40px] overflow-hidden">
-          <div className="flex p-2 bg-slate-50/50">
-            <button
-              onClick={() => setActiveTab("register")}
-              className={`flex-1 py-4 text-sm font-black rounded-2xl transition-all ${
-                activeTab === "register"
-                  ? "bg-white text-primary shadow-lg"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              Teste Grátis
-            </button>
-            <button
-              onClick={() => setActiveTab("login")}
-              className={`flex-1 py-4 text-sm font-black rounded-2xl transition-all ${
-                activeTab === "login"
-                  ? "bg-white text-primary shadow-lg"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              Entrar no Sistema
-            </button>
-          </div>
-
           <div className="p-10">
-            {activeTab === "register" ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Seu Nome</label>
@@ -169,65 +127,11 @@ export default function AuthPage() {
                     <ShieldCheck size={14} className="text-green-500" /> Sem compromisso • Sem cartão de crédito
                   </div>
                 </div>
-              </form>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setLoginError("");
-                  companyMutation.mutate({ cnpj: loginCnpj, senhaAcesso: loginSenhaEmpresa });
-                }}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ da Empresa</label>
-                    <Input
-                      placeholder="00.000.000/0000-00"
-                      value={loginCnpj}
-                      onChange={(e) => setLoginCnpj(formatCnpj(e.target.value))}
-                      className="h-12 border-slate-100 focus:ring-primary rounded-xl font-medium"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha de Acesso</label>
-                    <Input
-                      type="password"
-                      placeholder="Senha da empresa"
-                      value={loginSenhaEmpresa}
-                      onChange={(e) => setLoginSenhaEmpresa(e.target.value)}
-                      className="h-12 border-slate-100 focus:ring-primary rounded-xl font-medium"
-                      required
-                    />
-                  </div>
-                </div>
                 {loginError && <p className="text-xs text-red-500 font-bold text-center bg-red-50 p-2 rounded-lg">{loginError}</p>}
-                <Button
-                  type="submit"
-                  disabled={companyMutation.isPending}
-                  className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl mt-4"
-                >
-                  {companyMutation.isPending ? "Validando..." : "Continuar para o Sistema"}
-                </Button>
-              </form>
-            )}
+            </form>
           </div>
         </Card>
 
-        {/* Extra Info Grid */}
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-            <Zap className="text-primary mb-3" size={24} />
-            <h4 className="text-sm font-black text-slate-900 mb-1">Ativação Instantânea</h4>
-            <p className="text-[10px] text-slate-400 font-bold leading-tight">Comece a usar em menos de 2 minutos.</p>
-          </div>
-          <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-            <Check className="text-primary mb-3" size={24} />
-            <h4 className="text-sm font-black text-slate-900 mb-1">Suporte Integrado</h4>
-            <p className="text-[10px] text-slate-400 font-bold leading-tight">Nossa equipe pronta para te ajudar no onboarding.</p>
-          </div>
-        </div>
       </div>
     </div>
   );

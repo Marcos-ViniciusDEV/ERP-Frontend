@@ -44,7 +44,7 @@ export default function AdminLogin() {
         return;
       }
 
-      setAuthToken(data.token);
+      setAuthToken(data.token, data.refreshToken);
       await refresh();
       setLocation("/admin/saas");
     } catch (err: any) {

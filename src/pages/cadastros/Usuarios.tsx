@@ -124,6 +124,20 @@ const PERMISSION_GROUPS: PermissionModuleGroup[] = [
     ],
   },
   {
+    module: "Fiscal",
+    items: [
+      { key: "fiscal_configurar", name: "Configurar emitente, provider, certificado e numeração" },
+      { key: "fiscal_emitir", name: "Emitir e reenviar documentos fiscais" },
+      { key: "fiscal_cancelar", name: "Cancelar documentos fiscais" },
+      { key: "fiscal_inutilizar", name: "Registrar inutilização e carta de correção" },
+      { key: "fiscal_consultar", name: "Consultar documentos fiscais e DANFE" },
+      { key: "fiscal_baixar_xml", name: "Baixar XML fiscal" },
+      { key: "fiscal_ver_logs", name: "Visualizar eventos, transmissões e auditoria fiscal" },
+      { key: "sat_mfe_configurar", name: "Configurar equipamentos SAT/MFE" },
+      { key: "sat_mfe_emitir", name: "Emitir cupons SAT/MFE" },
+    ],
+  },
+  {
     module: "Relatórios & Outros",
     items: [
       { key: "relatorios_ver", name: "Visualizar Relatórios e Curva ABC" },

@@ -12,9 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
-import { Printer, Search, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, Printer, Search, X } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 
 export default function ConsultarVendas() {
+  const queryClient = useQueryClient();
   const todayStr = new Date().toLocaleDateString('sv');
   const [dataInicio, setDataInicio] = useState(todayStr);
   const [dataFim, setDataFim] = useState(todayStr);
@@ -188,6 +190,18 @@ export default function ConsultarVendas() {
     }
   };
 
+  const emitirDocumentoFiscal = useMutation({
+    mutationFn: async ({ vendaId, modelo }: { vendaId: number; modelo: "NFE" | "NFCE" }) => {
+      const { data } = await api.post("/fiscal/documentos/emitir", { vendaId, modelo });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["fiscal-documents"] });
+      data.authorized ? toast.success("Documento fiscal autorizado") : toast.warning(data.message || "Documento fiscal criado");
+    },
+    onError: (error: any) => toast.error(error.response?.data?.error || "Erro ao emitir documento fiscal"),
+  });
+
   const totalBruto = vendas?.reduce(
     (acc: number, venda: any) => acc + venda.valorTotal,
     0
@@ -331,6 +345,7 @@ export default function ConsultarVendas() {
                     <TableHead>Data/Hora</TableHead>
                     <TableHead>PDV</TableHead>
                     <TableHead>Venda</TableHead>
+                    <TableHead>Cliente</TableHead>
                     <TableHead>Operador</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
@@ -346,6 +361,7 @@ export default function ConsultarVendas() {
                       <TableCell className="font-medium">
                         {venda.numeroVenda}
                       </TableCell>
+                      <TableCell>{venda.clienteNome || "Consumidor nao identificado"}</TableCell>
                       <TableCell>{venda.operadorNome || "-"}</TableCell>
                       <TableCell className="text-right font-bold">
                         R$ {(venda.valorLiquido / 100).toFixed(2)}
@@ -359,6 +375,26 @@ export default function ConsultarVendas() {
                         >
                           <Printer className="w-4 h-4 text-blue-600" />
                           <span className="ml-2">Cupom</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => emitirDocumentoFiscal.mutate({ vendaId: venda.id, modelo: "NFCE" })}
+                          disabled={emitirDocumentoFiscal.isPending}
+                          title="Emitir NFC-e"
+                        >
+                          <FileText className="w-4 h-4 text-green-600" />
+                          <span className="ml-2">NFC-e</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => emitirDocumentoFiscal.mutate({ vendaId: venda.id, modelo: "NFE" })}
+                          disabled={emitirDocumentoFiscal.isPending || !venda.clienteId}
+                          title="Emitir NF-e modelo 55"
+                        >
+                          <FileText className="w-4 h-4 text-indigo-600" />
+                          <span className="ml-2">NF-e</span>
                         </Button>
                       </TableCell>
                     </TableRow>

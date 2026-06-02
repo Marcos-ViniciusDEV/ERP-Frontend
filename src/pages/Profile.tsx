@@ -8,13 +8,60 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { User, Building2, CreditCard, Loader2, Camera } from "lucide-react";
+
+type EmpresaProfile = {
+  razaoSocial: string;
+  nomeFantasia: string;
+  cnpj: string;
+  inscricaoEstadual: string;
+  inscricaoMunicipal: string;
+  crt: "1" | "2" | "3";
+  cnae: string;
+  telefone: string;
+  emailFiscal: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  codigoMunicipio: string;
+  uf: string;
+  cep: string;
+  tipoVarejo: string;
+  faturamentoMensal: string;
+  vendedores: number;
+};
+
+const defaultEmpresaProfile: EmpresaProfile = {
+  razaoSocial: "",
+  nomeFantasia: "",
+  cnpj: "",
+  inscricaoEstadual: "",
+  inscricaoMunicipal: "",
+  crt: "1",
+  cnae: "",
+  telefone: "",
+  emailFiscal: "",
+  logradouro: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  municipio: "",
+  codigoMunicipio: "",
+  uf: "",
+  cep: "",
+  tipoVarejo: "",
+  faturamentoMensal: "",
+  vendedores: 0,
+};
 
 export function Profile() {
   const { user, refresh } = useAuth();
   const currentUserRole = user?.role?.toLowerCase();
   const isAdmin = currentUserRole === "admin" || currentUserRole === "trakto_admin";
+  const defaultTab = new URLSearchParams(window.location.search).get("tab") === "empresa" && isAdmin ? "empresa" : "dados";
 
   // Estado para Meus Dados
   const [currentPassword, setCurrentPassword] = useState("");
@@ -22,18 +69,17 @@ export function Profile() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Estado para Empresa / CRM
-  const [tipoVarejo, setTipoVarejo] = useState(user?.empresa?.tipoVarejo || "");
-  const [faturamentoMensal, setFaturamentoMensal] = useState(user?.empresa?.faturamentoMensal || "");
-  const [vendedores, setVendedores] = useState(user?.empresa?.vendedores || 0);
+  const [empresaForm, setEmpresaForm] = useState<EmpresaProfile>(defaultEmpresaProfile);
+
+  const { data: empresaData, isLoading: isLoadingEmpresa } = useQuery<EmpresaProfile>({
+    queryKey: ["empresa-perfil"],
+    queryFn: async () => (await api.get("/empresas/perfil")).data,
+    enabled: isAdmin,
+  });
 
   useEffect(() => {
-    if (user?.empresa) {
-      setTipoVarejo(user.empresa.tipoVarejo || "");
-      setFaturamentoMensal(user.empresa.faturamentoMensal || "");
-      setVendedores(user.empresa.vendedores || 0);
-    }
-  }, [user]);
+    if (empresaData) setEmpresaForm({ ...defaultEmpresaProfile, ...empresaData });
+  }, [empresaData]);
 
   // Mutações
   const updatePasswordMutation = useMutation({
@@ -49,9 +95,9 @@ export function Profile() {
     onError: (err: any) => toast.error(err.response?.data?.error || "Erro ao atualizar senha")
   });
 
-  const updateCrmMutation = useMutation({
+  const updateEmpresaMutation = useMutation({
     mutationFn: async () => {
-      await api.put(`/empresas/crm`, { tipoVarejo, faturamentoMensal, vendedores });
+      await api.put("/empresas/perfil", empresaForm);
     },
     onSuccess: () => {
       toast.success("Dados da empresa atualizados!");
@@ -108,7 +154,7 @@ export function Profile() {
 
   const handleUpdateCrm = (e: React.FormEvent) => {
     e.preventDefault();
-    updateCrmMutation.mutate();
+    updateEmpresaMutation.mutate();
   };
 
 
@@ -121,7 +167,7 @@ export function Profile() {
           <p className="text-muted-foreground">Gerencie suas preferências, dados da empresa e acessos.</p>
         </div>
 
-        <Tabs defaultValue="dados" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList className="bg-white border w-full justify-start h-auto p-1 shadow-sm rounded-xl">
             <TabsTrigger value="dados" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 py-2.5 px-4 rounded-lg"><User className="w-4 h-4 mr-2" /> Meus Dados</TabsTrigger>
             {isAdmin && (
@@ -204,13 +250,50 @@ export function Profile() {
                   <CardDescription>Ajude-nos a personalizar sua experiência no ERP.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleUpdateCrm} className="space-y-6 max-w-lg">
+                  <form onSubmit={handleUpdateCrm} className="space-y-8">
+                    <section className="space-y-4">
+                      <h4 className="font-semibold">Cadastro fiscal e contato</h4>
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <CompanyField label="Razao social" value={empresaForm.razaoSocial} onChange={(value) => setEmpresaForm({ ...empresaForm, razaoSocial: value })} />
+                        <CompanyField label="Nome fantasia" value={empresaForm.nomeFantasia} onChange={(value) => setEmpresaForm({ ...empresaForm, nomeFantasia: value })} />
+                        <CompanyField label="CNPJ" value={empresaForm.cnpj} onChange={(value) => setEmpresaForm({ ...empresaForm, cnpj: value })} />
+                        <CompanyField label="Inscricao estadual" value={empresaForm.inscricaoEstadual} onChange={(value) => setEmpresaForm({ ...empresaForm, inscricaoEstadual: value })} />
+                        <CompanyField label="Inscricao municipal" value={empresaForm.inscricaoMunicipal} onChange={(value) => setEmpresaForm({ ...empresaForm, inscricaoMunicipal: value })} />
+                        <div className="space-y-2">
+                          <Label>CRT</Label>
+                          <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={empresaForm.crt} onChange={(e) => setEmpresaForm({ ...empresaForm, crt: e.target.value as EmpresaProfile["crt"] })}>
+                            <option value="1">Simples Nacional</option>
+                            <option value="2">Simples excesso sublimite</option>
+                            <option value="3">Regime normal</option>
+                          </select>
+                        </div>
+                        <CompanyField label="CNAE" value={empresaForm.cnae} onChange={(value) => setEmpresaForm({ ...empresaForm, cnae: value })} />
+                        <CompanyField label="Telefone" value={empresaForm.telefone} onChange={(value) => setEmpresaForm({ ...empresaForm, telefone: value })} />
+                        <CompanyField label="E-mail fiscal" type="email" value={empresaForm.emailFiscal} onChange={(value) => setEmpresaForm({ ...empresaForm, emailFiscal: value })} />
+                      </div>
+                    </section>
+
+                    <section className="space-y-4 border-t pt-6">
+                      <h4 className="font-semibold">Endereco</h4>
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <CompanyField label="Logradouro" value={empresaForm.logradouro} onChange={(value) => setEmpresaForm({ ...empresaForm, logradouro: value })} />
+                        <CompanyField label="Numero" value={empresaForm.numero} onChange={(value) => setEmpresaForm({ ...empresaForm, numero: value })} />
+                        <CompanyField label="Complemento" value={empresaForm.complemento} onChange={(value) => setEmpresaForm({ ...empresaForm, complemento: value })} />
+                        <CompanyField label="Bairro" value={empresaForm.bairro} onChange={(value) => setEmpresaForm({ ...empresaForm, bairro: value })} />
+                        <CompanyField label="Municipio" value={empresaForm.municipio} onChange={(value) => setEmpresaForm({ ...empresaForm, municipio: value })} />
+                        <CompanyField label="Codigo IBGE" value={empresaForm.codigoMunicipio} onChange={(value) => setEmpresaForm({ ...empresaForm, codigoMunicipio: value })} />
+                        <CompanyField label="UF" value={empresaForm.uf} onChange={(value) => setEmpresaForm({ ...empresaForm, uf: value.toUpperCase().slice(0, 2) })} />
+                        <CompanyField label="CEP" value={empresaForm.cep} onChange={(value) => setEmpresaForm({ ...empresaForm, cep: value })} />
+                      </div>
+                    </section>
+
+                    <h4 className="font-semibold border-t pt-6">Perfil comercial</h4>
                     <div className="space-y-2">
                       <Label>Segmento / Tipo de Varejo</Label>
                       <select
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={tipoVarejo}
-                        onChange={(e) => setTipoVarejo(e.target.value)}
+                        value={empresaForm.tipoVarejo}
+                        onChange={(e) => setEmpresaForm({ ...empresaForm, tipoVarejo: e.target.value })}
                       >
                         <option value="">Selecione...</option>
                         <option value="Supermercado">Supermercado / Mercearia</option>
@@ -224,8 +307,8 @@ export function Profile() {
                       <Label>Faturamento Mensal Estimado</Label>
                       <select
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={faturamentoMensal}
-                        onChange={(e) => setFaturamentoMensal(e.target.value)}
+                        value={empresaForm.faturamentoMensal}
+                        onChange={(e) => setEmpresaForm({ ...empresaForm, faturamentoMensal: e.target.value })}
                       >
                         <option value="">Selecione...</option>
                         <option value="Ate50k">Até R$ 50.000</option>
@@ -236,10 +319,10 @@ export function Profile() {
                     </div>
                     <div className="space-y-2">
                       <Label>Número de Operadores/Vendedores</Label>
-                      <Input type="number" min="0" value={vendedores} onChange={(e) => setVendedores(Number(e.target.value))} />
+                      <Input type="number" min="0" value={empresaForm.vendedores} onChange={(e) => setEmpresaForm({ ...empresaForm, vendedores: Number(e.target.value) })} />
                     </div>
-                    <Button type="submit" disabled={updateCrmMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      {updateCrmMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={updateEmpresaMutation.isPending || isLoadingEmpresa || !empresaForm.razaoSocial || !empresaForm.cnpj} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      {updateEmpresaMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Salvar Dados da Empresa
                     </Button>
                   </form>
@@ -298,5 +381,24 @@ export function Profile() {
         </Tabs>
       </div>
     </DashboardLayout>
+  );
+}
+
+function CompanyField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
   );
 }
